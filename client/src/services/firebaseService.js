@@ -10,9 +10,7 @@ import {
   query, 
   where, 
   orderBy, 
-  limit, 
-  serverTimestamp,
-  writeBatch 
+  limit 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -35,9 +33,9 @@ const DEFAULT_PRODUCTS = [
     category_id: 'cat-1',
     category_name: 'Natural Honey',
     short_description: 'Farm-fresh natural honey from Tirunelveli',
-    description: 'Experience the authentic taste of pure natural honey, carefully harvested from our bee farms in Tirunelveli, Tamil Nadu. Our honey is unprocessed and retains all its natural goodness. Each jar is filled with honey that comes straight from healthy bee colonies nurtured in the lush environment of Tirunelveli.',
+    description: 'Experience the authentic taste of pure natural honey, carefully harvested from our bee farms in Tirunelveli, Tamil Nadu. Our honey is unprocessed and retains all its natural goodness.',
     ingredients: '100% Natural Honey',
-    storage_info: 'Store in a cool, dry place away from direct sunlight. Do not refrigerate. Crystallization is natural and does not affect quality.',
+    storage_info: 'Store in a cool, dry place away from direct sunlight.',
     shipping_info: 'Shipped in secure packaging. Delivery within 5-7 business days across India.',
     is_featured: true,
     is_best_seller: true,
@@ -59,9 +57,9 @@ const DEFAULT_PRODUCTS = [
     category_id: 'cat-2',
     category_name: 'Honey Comb',
     short_description: 'Fresh honeycomb with pure honey',
-    description: 'Enjoy honey in its most natural form — straight from the comb. Our fresh honeycomb is harvested carefully to preserve the delicate wax structure filled with pure, raw honey. A true delicacy for honey lovers who appreciate nature\'s craftsmanship.',
+    description: 'Enjoy honey in its most natural form — straight from the comb. Our fresh honeycomb is harvested carefully to preserve the delicate wax structure filled with pure raw honey.',
     ingredients: '100% Natural Honeycomb with Raw Honey',
-    storage_info: 'Store in a cool, dry place. Best consumed within 3 months of purchase for optimal freshness.',
+    storage_info: 'Store in a cool, dry place.',
     shipping_info: 'Carefully packed to preserve comb structure. Delivery within 5-7 business days.',
     is_featured: true,
     is_best_seller: false,
@@ -82,9 +80,9 @@ const DEFAULT_PRODUCTS = [
     category_id: 'cat-3',
     category_name: 'Premium Honey',
     short_description: 'Our finest quality premium honey selection',
-    description: 'Kamala Premium Honey represents the very best of our harvest. Selected from the finest batches, this honey has a rich, complex flavor profile and smooth texture. Ideal for those who appreciate the subtle nuances of high-quality natural honey.',
+    description: 'Kamala Premium Honey represents the very best of our harvest. Selected from the finest batches, this honey has a rich, complex flavor profile and smooth texture.',
     ingredients: '100% Pure Premium Honey',
-    storage_info: 'Store in a cool, dry place away from direct sunlight. Crystallization is a sign of purity.',
+    storage_info: 'Store in a cool, dry place away from direct sunlight.',
     shipping_info: 'Premium packaging with secure delivery. Ships within 3-5 business days.',
     is_featured: true,
     is_best_seller: true,
@@ -106,9 +104,9 @@ const DEFAULT_PRODUCTS = [
     category_id: 'cat-4',
     category_name: 'Honey Gift Packs',
     short_description: 'Beautifully packaged honey gift set',
-    description: 'The perfect gift for honey enthusiasts. Our Premium Honey Gift Pack features a curated selection of our finest honey varieties, elegantly packaged in a beautiful gift box. Ideal for festivals, celebrations, and special occasions.',
+    description: 'The perfect gift for honey enthusiasts. Our Premium Honey Gift Pack features a curated selection of our finest honey varieties, elegantly packaged in a gift box.',
     ingredients: 'Assorted Natural Honey Varieties',
-    storage_info: 'Store in a cool, dry place. Keep the gift box away from moisture.',
+    storage_info: 'Store in a cool, dry place.',
     shipping_info: 'Gift-wrapped and shipped in protective packaging. Delivery within 5-7 business days.',
     is_featured: true,
     is_best_seller: false,
@@ -129,7 +127,7 @@ const DEFAULT_PRODUCTS = [
     category_id: 'cat-1',
     category_name: 'Natural Honey',
     short_description: 'Wild forest honey with rich aroma',
-    description: 'Our Forest Honey is sourced from bee colonies in the dense forests surrounding Tirunelveli. The bees collect nectar from a diverse range of wildflowers, resulting in a honey with a distinctively rich, deep flavor and dark amber color.',
+    description: 'Our Forest Honey is sourced from bee colonies in the dense forests surrounding Tirunelveli. The bees collect nectar from wildflowers resulting in a honey with a deep rich flavor.',
     ingredients: '100% Natural Forest Honey',
     storage_info: 'Store in a cool, dry place away from direct sunlight.',
     shipping_info: 'Shipped in secure, leak-proof packaging. Delivery within 5-7 business days.',
@@ -167,7 +165,6 @@ const DEFAULT_SETTINGS = {
   cod_enabled: true
 };
 
-// Auto-seed Firestore on first access if collections are empty
 let isSeeded = false;
 
 export async function ensureFirestoreSeeded() {
@@ -208,6 +205,39 @@ export async function ensureFirestoreSeeded() {
 }
 
 // ============================================================
+// CATEGORIES SERVICE
+// ============================================================
+export async function getCategories() {
+  await ensureFirestoreSeeded();
+  try {
+    const snap = await getDocs(collection(db, 'categories'));
+    const cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return cats.length > 0 ? cats : DEFAULT_CATEGORIES;
+  } catch (err) {
+    return DEFAULT_CATEGORIES;
+  }
+}
+
+export async function saveCategory(categoryData, id = null) {
+  await ensureFirestoreSeeded();
+  if (id) {
+    await updateDoc(doc(db, 'categories', id), categoryData);
+    return { id, ...categoryData };
+  } else {
+    const docRef = await addDoc(collection(db, 'categories'), {
+      ...categoryData,
+      is_active: true,
+      created_at: new Date().toISOString()
+    });
+    return { id: docRef.id, ...categoryData };
+  }
+}
+
+export async function deleteCategory(id) {
+  await deleteDoc(doc(db, 'categories', id));
+}
+
+// ============================================================
 // PRODUCTS SERVICE
 // ============================================================
 export async function getProducts(options = {}) {
@@ -217,7 +247,7 @@ export async function getProducts(options = {}) {
     let prods = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     if (options.category) {
-      prods = prods.filter(p => p.category_slug === options.category || p.category_id === options.category);
+      prods = prods.filter(p => p.category_slug === options.category || p.category_id === options.category || p.category_name === options.category);
     }
     if (options.search) {
       const q = options.search.toLowerCase();
@@ -239,6 +269,17 @@ export async function getProducts(options = {}) {
   }
 }
 
+export async function getProductById(id) {
+  await ensureFirestoreSeeded();
+  try {
+    const d = await getDoc(doc(db, 'products', id));
+    if (d.exists()) {
+      return { id: d.id, ...d.data() };
+    }
+  } catch (err) {}
+  return DEFAULT_PRODUCTS.find(p => p.id === id) || DEFAULT_PRODUCTS[0];
+}
+
 export async function getProductBySlug(slug) {
   await ensureFirestoreSeeded();
   try {
@@ -248,9 +289,7 @@ export async function getProductBySlug(slug) {
       const d = snap.docs[0];
       return { id: d.id, ...d.data() };
     }
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) {}
   return DEFAULT_PRODUCTS.find(p => p.slug === slug) || DEFAULT_PRODUCTS[0];
 }
 
@@ -275,29 +314,23 @@ export async function deleteProduct(productId) {
 }
 
 // ============================================================
-// CATEGORIES SERVICE
+// INVENTORY SERVICE
 // ============================================================
-export async function getCategories() {
+export async function updateInventoryStock(productId, variantId, newStock) {
   await ensureFirestoreSeeded();
-  try {
-    const snap = await getDocs(collection(db, 'categories'));
-    const cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return cats.length > 0 ? cats : DEFAULT_CATEGORIES;
-  } catch (err) {
-    return DEFAULT_CATEGORIES;
-  }
-}
+  const prodRef = doc(db, 'products', productId);
+  const prodSnap = await getDoc(prodRef);
+  if (!prodSnap.exists()) return;
 
-export async function saveCategory(categoryData, id = null) {
-  if (id) {
-    await updateDoc(doc(db, 'categories', id), categoryData);
-  } else {
-    await addDoc(collection(db, 'categories'), categoryData);
-  }
-}
+  const product = prodSnap.data();
+  const updatedVariants = product.variants.map(v => {
+    if (v.id === variantId || v.weight === variantId) {
+      return { ...v, stock: parseInt(newStock) };
+    }
+    return v;
+  });
 
-export async function deleteCategory(id) {
-  await deleteDoc(doc(db, 'categories', id));
+  await updateDoc(prodRef, { variants: updatedVariants });
 }
 
 // ============================================================
@@ -323,7 +356,7 @@ export async function createOrder(orderPayload) {
     total: orderPayload.total || 0,
     payment_method: 'COD',
     payment_status: 'pending',
-    order_status: 'pending', // Stage 1
+    order_status: 'pending',
     created_at: new Date().toISOString()
   };
 
@@ -349,10 +382,18 @@ export async function getOrders(statusFilter = 'all') {
 
 export async function getOrderById(orderId) {
   await ensureFirestoreSeeded();
-  const d = await getDoc(doc(db, 'orders', orderId));
-  if (d.exists()) {
-    return { id: d.id, ...d.data() };
-  }
+  try {
+    const d = await getDoc(doc(db, 'orders', orderId));
+    if (d.exists()) {
+      return { id: d.id, ...d.data() };
+    }
+    // Try finding by order_number
+    const q = query(collection(db, 'orders'), where('order_number', '==', orderId));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return { id: snap.docs[0].id, ...snap.docs[0].data() };
+    }
+  } catch (err) {}
   return null;
 }
 
@@ -364,7 +405,6 @@ export async function updateOrderStage(orderId, newStageKey) {
   if (!orderSnap.exists()) throw new Error('Order not found');
   const order = orderSnap.data();
 
-  // Enforce cancellation locking rule: packed, shipped, out_for_delivery, delivered cannot be cancelled!
   if (newStageKey === 'cancelled') {
     const lockedStages = ['packed', 'shipped', 'out_for_delivery', 'delivered'];
     if (lockedStages.includes(order.order_status)) {
@@ -381,16 +421,43 @@ export async function updateOrderStage(orderId, newStageKey) {
 }
 
 // ============================================================
+// CUSTOMERS SERVICE
+// ============================================================
+export async function getCustomers() {
+  await ensureFirestoreSeeded();
+  try {
+    const snap = await getDocs(collection(db, 'customers'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    return [];
+  }
+}
+
+// ============================================================
 // COUPONS & SETTINGS SERVICE
 // ============================================================
 export async function getCoupons() {
   await ensureFirestoreSeeded();
   try {
     const snap = await getDocs(collection(db, 'coupons'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const c = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return c.length > 0 ? c : DEFAULT_COUPONS;
   } catch (err) {
     return DEFAULT_COUPONS;
   }
+}
+
+export async function saveCoupon(couponData, id = null) {
+  await ensureFirestoreSeeded();
+  if (id) {
+    await updateDoc(doc(db, 'coupons', id), couponData);
+  } else {
+    await addDoc(collection(db, 'coupons'), { ...couponData, is_active: true, created_at: new Date().toISOString() });
+  }
+}
+
+export async function deleteCoupon(id) {
+  await deleteDoc(doc(db, 'coupons', id));
 }
 
 export async function validateCoupon(code, subtotal) {

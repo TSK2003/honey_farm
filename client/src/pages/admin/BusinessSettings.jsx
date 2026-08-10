@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getSettings, saveSettings } from '../../services/firebaseService';
 
 export default function BusinessSettings() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [settings, setSettings] = useState({
     business_name: 'Kamala Honey Farm',
@@ -22,14 +21,9 @@ export default function BusinessSettings() {
 
   async function fetchSettings() {
     try {
-      const res = await fetch('/api/settings?group=business', {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        const map = { ...settings };
-        data.forEach(s => { map[s.setting_key] = s.setting_value; });
-        setSettings(map);
+      const data = await getSettings();
+      if (data) {
+        setSettings(prev => ({ ...prev, ...data }));
       }
     } catch (err) {
       console.error(err);
@@ -38,51 +32,90 @@ export default function BusinessSettings() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    const payload = Object.keys(settings).map(key => ({
-      key,
-      value: settings[key],
-      group: 'business'
-    }));
-
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify({ settings: payload })
-      });
-      if (res.ok) addToast('Business settings saved', 'success');
+      await saveSettings(settings);
+      addToast('Business settings saved to Firebase!', 'success');
     } catch (err) {
       addToast('Error saving settings', 'error');
     }
   };
 
   return (
-    <AdminLayout title="Business Settings">
-      <form onSubmit={handleSave} style={{ maxWidth: '600px', background: 'white', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+    <AdminLayout title="Business Details Settings">
+      <form onSubmit={handleSave} style={{ maxWidth: '600px', background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
         <div className="form-group">
           <label className="form-label">Business Name</label>
-          <input type="text" className="form-input" value={settings.business_name} onChange={(e) => setSettings({...settings, business_name: e.target.value})} required />
+          <input
+            type="text"
+            className="form-input"
+            value={settings.business_name}
+            onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
+          />
         </div>
+
         <div className="form-group">
           <label className="form-label">Tagline</label>
-          <input type="text" className="form-input" value={settings.business_tagline} onChange={(e) => setSettings({...settings, business_tagline: e.target.value})} />
+          <input
+            type="text"
+            className="form-input"
+            value={settings.business_tagline}
+            onChange={(e) => setSettings({ ...settings, business_tagline: e.target.value })}
+          />
         </div>
+
+        <div className="grid grid-2" style={{ gap: '16px' }}>
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="text"
+              className="form-input"
+              value={settings.business_phone}
+              onChange={(e) => setSettings({ ...settings, business_phone: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">WhatsApp Number</label>
+            <input
+              type="text"
+              className="form-input"
+              value={settings.business_whatsapp}
+              onChange={(e) => setSettings({ ...settings, business_whatsapp: e.target.value })}
+            />
+          </div>
+        </div>
+
         <div className="form-group">
-          <label className="form-label">Phone Number</label>
-          <input type="text" className="form-input" value={settings.business_phone} onChange={(e) => setSettings({...settings, business_phone: e.target.value})} required />
+          <label className="form-label">Business Email</label>
+          <input
+            type="email"
+            className="form-input"
+            value={settings.business_email}
+            onChange={(e) => setSettings({ ...settings, business_email: e.target.value })}
+          />
         </div>
+
+        <div className="form-group">
+          <label className="form-label">Farm Address</label>
+          <textarea
+            className="form-input"
+            rows="3"
+            value={settings.business_address}
+            onChange={(e) => setSettings({ ...settings, business_address: e.target.value })}
+          ></textarea>
+        </div>
+
         <div className="form-group">
           <label className="form-label">Instagram Link</label>
-          <input type="text" className="form-input" value={settings.business_instagram} onChange={(e) => setSettings({...settings, business_instagram: e.target.value})} required />
+          <input
+            type="text"
+            className="form-input"
+            value={settings.business_instagram}
+            onChange={(e) => setSettings({ ...settings, business_instagram: e.target.value })}
+          />
         </div>
-        <div className="form-group">
-          <label className="form-label">Address</label>
-          <textarea className="form-textarea" rows="3" value={settings.business_address} onChange={(e) => setSettings({...settings, business_address: e.target.value})}></textarea>
-        </div>
-        <button type="submit" className="btn btn-primary">SAVE BUSINESS INFO</button>
+
+        <button type="submit" className="btn btn-primary">SAVE SETTINGS</button>
       </form>
     </AdminLayout>
   );

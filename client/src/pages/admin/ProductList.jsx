@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getProducts, deleteProduct } from '../../services/firebaseService';
 
 export default function ProductList() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,11 +17,8 @@ export default function ProductList() {
   async function fetchProducts() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/products/admin/list/all?search=${encodeURIComponent(search)}`, {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      if (data.products) setProducts(data.products);
+      const data = await getProducts({ search });
+      if (Array.isArray(data)) setProducts(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -33,102 +29,79 @@ export default function ProductList() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      const res = await fetch(`/api/products/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      if (res.ok) {
-        addToast('Product deleted', 'success');
-        fetchProducts();
-      }
+      await deleteProduct(id);
+      addToast('Product deleted', 'success');
+      fetchProducts();
     } catch (err) {
       addToast('Error deleting product', 'error');
     }
   };
 
-  const handleDuplicate = async (id) => {
-    try {
-      const res = await fetch(`/api/products/${id}/duplicate`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      if (res.ok) {
-        addToast('Product duplicated', 'success');
-        fetchProducts();
-      }
-    } catch (err) {
-      addToast('Error duplicating product', 'error');
-    }
-  };
-
   return (
-    <AdminLayout title="Product Management">
+    <AdminLayout title="Products Catalog">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <input 
+        <input
           type="text"
           className="form-input"
-          placeholder="Search products..."
+          style={{ maxWidth: '300px' }}
+          placeholder="Search products by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ maxWidth: '300px' }}
         />
+
         <Link to="/admin/products/new" className="btn btn-primary">
-          + ADD NEW PRODUCT
+          + ADD NEW HONEY PRODUCT
         </Link>
       </div>
 
-      {loading ? (
-        <div className="loader"><div className="spinner"></div></div>
-      ) : (
-        <div className="table-container" style={{ background: 'white' }}>
+      <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+        {loading ? (
+          <div className="loader"><div className="spinner"></div></div>
+        ) : products.length === 0 ? (
+          <p style={{ color: '#8B7B6B', fontSize: '13px' }}>No products found matching your filter.</p>
+        ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Image</th>
-                <th>Product Name</th>
+                <th>Product</th>
                 <th>Category</th>
-                <th>Variants</th>
-                <th>Starting Price</th>
-                <th>Total Stock</th>
-                <th>Status</th>
+                <th>Variants & Price</th>
+                <th>Rating</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map(p => {
-                const primaryImg = p.images && p.images.length > 0 ? p.images[0].url : '/images/product-natural-honey.png';
-                const totalStock = p.variants ? p.variants.reduce((s, v) => s + v.stock, 0) : 0;
-                const minPrice = p.variants && p.variants.length > 0 ? Math.min(...p.variants.map(v => v.price)) : 0;
-
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <img src={primaryImg} alt={p.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{p.name}</td>
-                    <td>{p.category_name || 'Uncategorized'}</td>
-                    <td>{p.variants?.map(v => v.weight).join(', ')}</td>
-                    <td>₹{minPrice}</td>
-                    <td>
-                      <span className={`badge badge-${totalStock > 10 ? 'success' : totalStock > 0 ? 'warning' : 'danger'}`}>
-                        {totalStock} units
+              {products.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ fontWeight: 600 }}>{p.name}</td>
+                  <td>{p.category_name}</td>
+                  <td>
+                    {p.variants ? p.variants.map(v => (
+                      <span key={v.id || v.weight} style={{ display: 'inline-block', background: '#FFF8ED', padding: '2px 8px', borderRadius: '4px', border: '1px solid #F0D48A', marginRight: '6px', fontSize: '11px' }}>
+                        {v.weight}: ₹{v.price} (Stock: {v.stock})
                       </span>
-                    </td>
-                    <td><span className="badge badge-primary">{p.status}</span></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <Link to={`/admin/products/${p.id}/edit`} className="btn btn-sm btn-outline">Edit</Link>
-                        <button onClick={() => handleDuplicate(p.id)} className="btn btn-sm btn-ghost">Copy</button>
-                        <button onClick={() => handleDelete(p.id)} className="btn btn-sm btn-danger">Del</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    )) : 'No variants'}
+                  </td>
+                  <td>⭐ {p.rating || 5.0} ({p.review_count || 0})</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <Link to={`/admin/products/${p.id}/edit`} style={{ color: '#C17817', fontWeight: 600, fontSize: '12px' }}>
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        style={{ color: '#C44B3F', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </AdminLayout>
   );
 }

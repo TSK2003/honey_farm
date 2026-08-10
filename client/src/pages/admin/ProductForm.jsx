@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getCategories, getProductById, saveProduct } from '../../services/firebaseService';
 
 export default function ProductForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
 
   const [categories, setCategories] = useState([]);
@@ -18,6 +17,7 @@ export default function ProductForm() {
     name: '',
     slug: '',
     category_id: '',
+    category_name: '',
     short_description: '',
     description: '',
     ingredients: '100% Pure Natural Honey',
@@ -30,9 +30,9 @@ export default function ProductForm() {
   });
 
   const [variants, setVariants] = useState([
-    { weight: '250g', sku: '', price: 199, mrp: 249, stock: 50, low_stock_threshold: 5 },
-    { weight: '500g', sku: '', price: 379, mrp: 449, stock: 40, low_stock_threshold: 5 },
-    { weight: '1kg', sku: '', price: 699, mrp: 849, stock: 30, low_stock_threshold: 5 }
+    { id: 'var-1', weight: '250g', sku: 'KHF-HNY-250', price: 199, mrp: 249, stock: 50, low_stock_threshold: 5 },
+    { id: 'var-2', weight: '500g', sku: 'KHF-HNY-500', price: 379, mrp: 449, stock: 40, low_stock_threshold: 5 },
+    { id: 'var-3', weight: '1kg', sku: 'KHF-HNY-1000', price: 699, mrp: 849, stock: 30, low_stock_threshold: 5 }
   ]);
 
   const [imageUrl, setImageUrl] = useState('/images/product-natural-honey.png');
@@ -44,12 +44,11 @@ export default function ProductForm() {
 
   async function fetchCategories() {
     try {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
+      const data = await getCategories();
       if (Array.isArray(data)) {
         setCategories(data);
         if (!formData.category_id && data.length > 0) {
-          setFormData(prev => ({ ...prev, category_id: data[0].id }));
+          setFormData(prev => ({ ...prev, category_id: data[0].id, category_name: data[0].name }));
         }
       }
     } catch (err) {
@@ -59,172 +58,194 @@ export default function ProductForm() {
 
   async function fetchProduct() {
     try {
-      const res = await fetch(`/api/products/admin/${id}`, {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      setFormData({
-        name: data.name,
-        slug: data.slug,
-        category_id: data.category_id || '',
-        short_description: data.short_description || '',
-        description: data.description || '',
-        ingredients: data.ingredients || '',
-        storage_info: data.storage_info || '',
-        shipping_info: data.shipping_info || '',
-        is_featured: Boolean(data.is_featured),
-        is_best_seller: Boolean(data.is_best_seller),
-        is_new_arrival: Boolean(data.is_new_arrival),
-        status: data.status || 'active'
-      });
-      if (data.variants && data.variants.length > 0) setVariants(data.variants);
-      if (data.images && data.images.length > 0) setImageUrl(data.images[0].url);
+      const prod = await getProductById(id);
+      if (prod) {
+        setFormData({
+          name: prod.name || '',
+          slug: prod.slug || '',
+          category_id: prod.category_id || '',
+          category_name: prod.category_name || '',
+          short_description: prod.short_description || '',
+          description: prod.description || '',
+          ingredients: prod.ingredients || '100% Pure Natural Honey',
+          storage_info: prod.storage_info || '',
+          shipping_info: prod.shipping_info || '',
+          is_featured: prod.is_featured || false,
+          is_best_seller: prod.is_best_seller || false,
+          is_new_arrival: prod.is_new_arrival || false,
+          status: prod.status || 'active'
+        });
+        if (prod.variants && prod.variants.length > 0) setVariants(prod.variants);
+        if (prod.images && prod.images.length > 0) setImageUrl(prod.images[0].url);
+      }
     } catch (err) {
-      addToast('Error loading product', 'error');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  const handleNameChange = (e) => {
-    const name = e.target.value;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setFormData({ ...formData, name, slug: isEdit ? formData.slug : slug });
-  };
-
   const handleVariantChange = (index, field, value) => {
-    const updated = [...variants];
-    updated[index][field] = value;
-    setVariants(updated);
+    const next = [...variants];
+    next[index][field] = value;
+    setVariants(next);
   };
 
-  const handleSave = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name) return;
+
+    const slug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const selectedCat = categories.find(c => c.id === formData.category_id);
+
+    const payload = {
+      ...formData,
+      slug,
+      category_name: selectedCat ? selectedCat.name : formData.category_name || 'Natural Honey',
+      variants,
+      images: [{ url: imageUrl, is_primary: true }]
+    };
+
     try {
-      const payload = {
-        ...formData,
-        variants,
-        images: [{ url: imageUrl, is_primary: 1 }]
-      };
-
-      const url = isEdit ? `/api/products/${id}` : '/api/products';
-      const method = isEdit ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save product');
-
-      addToast(isEdit ? 'Product updated successfully' : 'Product created successfully', 'success');
+      await saveProduct(payload, isEdit ? id : null);
+      addToast(isEdit ? 'Product updated successfully!' : 'Honey product added successfully!', 'success');
       navigate('/admin/products');
     } catch (err) {
-      addToast(err.message, 'error');
+      addToast('Error saving product: ' + err.message, 'error');
     }
   };
 
-  if (loading) return <AdminLayout title="Product Form"><div className="loader"><div className="spinner"></div></div></AdminLayout>;
+  if (loading) return <AdminLayout title={isEdit ? "Edit Product" : "New Honey Product"}><div className="loader"><div className="spinner"></div></div></AdminLayout>;
 
   return (
-    <AdminLayout title={isEdit ? 'Edit Honey Product' : 'Add New Honey Product'}>
-      <form onSubmit={handleSave} style={{ maxWidth: '900px' }}>
+    <AdminLayout title={isEdit ? "Edit Honey Product" : "Add New Honey Product"}>
+      <form onSubmit={handleSubmit} style={{ maxWidth: '800px' }}>
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8', marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Basic Details</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Basic Details</h3>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Product Name *</label>
-              <input type="text" className="form-input" value={formData.name} onChange={handleNameChange} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Slug *</label>
-              <input type="text" className="form-input" value={formData.slug} onChange={(e) => setFormData({...formData, slug: e.target.value})} required />
-            </div>
+          <div className="form-group">
+            <label className="form-label">Product Name *</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
           </div>
 
-          <div className="form-row">
+          <div className="grid grid-2" style={{ gap: '16px' }}>
             <div className="form-group">
-              <label className="form-label">Category</label>
-              <select className="form-select" value={formData.category_id} onChange={(e) => setFormData({...formData, category_id: e.target.value})}>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <label className="form-label">Category *</label>
+              <select
+                className="form-input"
+                value={formData.category_id}
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                required
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
+
             <div className="form-group">
-              <label className="form-label">Image URL</label>
-              <input type="text" className="form-input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} required />
+              <label className="form-label">Slug</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="Auto-generated"
+              />
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Short Description</label>
-            <input type="text" className="form-input" value={formData.short_description} onChange={(e) => setFormData({...formData, short_description: e.target.value})} />
+            <label className="form-label">Short Summary</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.short_description}
+              onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+            />
           </div>
 
           <div className="form-group">
             <label className="form-label">Full Description</label>
-            <textarea className="form-textarea" rows="4" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}></textarea>
+            <textarea
+              className="form-input"
+              rows="4"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            ></textarea>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Image Asset URL</label>
+            <input
+              type="text"
+              className="form-input"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
           </div>
         </div>
 
-        {/* Variants Section */}
+        {/* Variants & Pricing */}
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8', marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Weight Variants & Stock</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Net Weight Variants, Prices & Inventory</h3>
 
           {variants.map((v, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
-              <div>
-                <label className="form-label">Weight</label>
-                <input type="text" className="form-input" value={v.weight} onChange={(e) => handleVariantChange(i, 'weight', e.target.value)} />
-              </div>
-              <div>
-                <label className="form-label">SKU</label>
-                <input type="text" className="form-input" value={v.sku || ''} onChange={(e) => handleVariantChange(i, 'sku', e.target.value)} placeholder="Auto-generated" />
-              </div>
-              <div>
-                <label className="form-label">Selling Price (₹)</label>
-                <input type="number" className="form-input" value={v.price} onChange={(e) => handleVariantChange(i, 'price', parseFloat(e.target.value))} />
-              </div>
-              <div>
-                <label className="form-label">MRP (₹)</label>
-                <input type="number" className="form-input" value={v.mrp} onChange={(e) => handleVariantChange(i, 'mrp', parseFloat(e.target.value))} />
-              </div>
-              <div>
-                <label className="form-label">Stock Units</label>
-                <input type="number" className="form-input" value={v.stock} onChange={(e) => handleVariantChange(i, 'stock', parseInt(e.target.value))} />
+            <div key={i} style={{ padding: '16px', background: '#FFF8ED', borderRadius: '6px', border: '1px solid #F0D48A', marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#C17817', marginBottom: '12px' }}>Variant {i + 1}: {v.weight}</h4>
+              <div className="grid grid-4" style={{ gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600 }}>Weight</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={v.weight}
+                    onChange={(e) => handleVariantChange(i, 'weight', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600 }}>Price (₹)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={v.price}
+                    onChange={(e) => handleVariantChange(i, 'price', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600 }}>MRP (₹)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={v.mrp}
+                    onChange={(e) => handleVariantChange(i, 'mrp', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600 }}>Stock Count</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={v.stock}
+                    onChange={(e) => handleVariantChange(i, 'stock', Number(e.target.value))}
+                  />
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Options */}
-        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', gap: '24px' }}>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={formData.is_featured} onChange={(e) => setFormData({...formData, is_featured: e.target.checked})} />
-              Featured Product
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={formData.is_best_seller} onChange={(e) => setFormData({...formData, is_best_seller: e.target.checked})} />
-              Best Seller
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={formData.is_new_arrival} onChange={(e) => setFormData({...formData, is_new_arrival: e.target.checked})} />
-              New Arrival
-            </label>
-          </div>
-        </div>
-
         <div style={{ display: 'flex', gap: '16px' }}>
-          <button type="submit" className="btn btn-primary btn-lg">
-            {isEdit ? 'UPDATE PRODUCT' : 'SAVE PRODUCT'}
+          <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+            {isEdit ? "SAVE PRODUCT CHANGES" : "CREATE HONEY PRODUCT"}
           </button>
-          <button type="button" onClick={() => navigate('/admin/products')} className="btn btn-ghost btn-lg">
+          <button type="button" onClick={() => navigate('/admin/products')} className="btn btn-outline">
             CANCEL
           </button>
         </div>

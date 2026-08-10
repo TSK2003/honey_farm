@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getCoupons, saveCoupon, deleteCoupon } from '../../services/firebaseService';
 
 export default function CouponList() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,11 +14,9 @@ export default function CouponList() {
   }, []);
 
   async function fetchCoupons() {
+    setLoading(true);
     try {
-      const res = await fetch('/api/coupons', {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
+      const data = await getCoupons();
       if (Array.isArray(data)) setCoupons(data);
     } catch (err) {
       console.error(err);
@@ -30,31 +27,20 @@ export default function CouponList() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!newCoupon.code) return;
     try {
-      const res = await fetch('/api/coupons', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify(newCoupon)
-      });
-      if (res.ok) {
-        addToast('Coupon created', 'success');
-        setNewCoupon({ code: '', type: 'percentage', value: 10, min_order: 500 });
-        fetchCoupons();
-      }
+      await saveCoupon(newCoupon);
+      addToast('Discount coupon created successfully!', 'success');
+      setNewCoupon({ code: '', type: 'percentage', value: 10, min_order: 500 });
+      fetchCoupons();
     } catch (err) {
-      addToast('Error creating coupon', 'error');
+      addToast('Error creating coupon: ' + err.message, 'error');
     }
   };
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`/api/coupons/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
+      await deleteCoupon(id);
       addToast('Coupon deleted', 'success');
       fetchCoupons();
     } catch (err) {
@@ -63,53 +49,100 @@ export default function CouponList() {
   };
 
   return (
-    <AdminLayout title="Coupon & Promo Management">
-      <div className="grid grid-2" style={{ gap: '24px' }}>
+    <AdminLayout title="Discount Coupons Management">
+      <div className="grid grid-2" style={{ gap: '32px' }}>
+        {/* Create form */}
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Create Coupon</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Create New Coupon</h3>
           <form onSubmit={handleCreate}>
             <div className="form-group">
               <label className="form-label">Coupon Code *</label>
-              <input type="text" className="form-input" value={newCoupon.code} onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} placeholder="e.g. HONEY10" required />
+              <input
+                type="text"
+                className="form-input"
+                value={newCoupon.code}
+                onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                placeholder="e.g. HONEY10"
+                required
+              />
             </div>
-            <div className="form-row">
+
+            <div className="grid grid-2" style={{ gap: '16px' }}>
               <div className="form-group">
-                <label className="form-label">Type</label>
-                <select className="form-select" value={newCoupon.type} onChange={(e) => setNewCoupon({...newCoupon, type: e.target.value})}>
+                <label className="form-label">Discount Type</label>
+                <select
+                  className="form-input"
+                  value={newCoupon.type}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, type: e.target.value })}
+                >
                   <option value="percentage">Percentage (%)</option>
                   <option value="fixed">Fixed Amount (₹)</option>
                 </select>
               </div>
+
               <div className="form-group">
-                <label className="form-label">Value *</label>
-                <input type="number" className="form-input" value={newCoupon.value} onChange={(e) => setNewCoupon({...newCoupon, value: parseFloat(e.target.value)})} required />
+                <label className="form-label">Value</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={newCoupon.value}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, value: Number(e.target.value) })}
+                  required
+                />
               </div>
             </div>
+
             <div className="form-group">
               <label className="form-label">Minimum Order Amount (₹)</label>
-              <input type="number" className="form-input" value={newCoupon.min_order} onChange={(e) => setNewCoupon({...newCoupon, min_order: parseFloat(e.target.value)})} />
+              <input
+                type="number"
+                className="form-input"
+                value={newCoupon.min_order}
+                onChange={(e) => setNewCoupon({ ...newCoupon, min_order: Number(e.target.value) })}
+              />
             </div>
-            <button type="submit" className="btn btn-primary">CREATE COUPON</button>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>CREATE COUPON</button>
           </form>
         </div>
 
-        <div className="table-container" style={{ background: 'white' }}>
-          <table className="table">
-            <thead>
-              <tr><th>Code</th><th>Discount</th><th>Min Order</th><th>Used</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-              {coupons.map(c => (
-                <tr key={c.id}>
-                  <td style={{ fontWeight: 700, color: '#C17817' }}>{c.code}</td>
-                  <td>{c.type === 'percentage' ? `${c.value}%` : `₹${c.value}`}</td>
-                  <td>₹{c.min_order}</td>
-                  <td>{c.used_count || 0} times</td>
-                  <td><button onClick={() => handleDelete(c.id)} className="btn btn-sm btn-danger">Delete</button></td>
+        {/* List */}
+        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Active Coupons ({coupons.length})</h3>
+
+          {loading ? (
+            <div className="loader"><div className="spinner"></div></div>
+          ) : coupons.length === 0 ? (
+            <p style={{ color: '#8B7B6B', fontSize: '13px' }}>No coupons created yet.</p>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount</th>
+                  <th>Min Order</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {coupons.map((c) => (
+                  <tr key={c.id}>
+                    <td style={{ fontWeight: 700, color: '#C17817' }}>{c.code}</td>
+                    <td>{c.type === 'percentage' ? `${c.value}% OFF` : `₹${c.value} OFF`}</td>
+                    <td>₹{c.min_order}</td>
+                    <td>
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        style={{ color: '#C44B3F', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </AdminLayout>
