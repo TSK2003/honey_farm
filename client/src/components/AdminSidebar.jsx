@@ -41,8 +41,12 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           gap: 12px;
         }
         .sidebar-header img {
-          height: 36px;
-          filter: brightness(0) invert(1);
+          height: 38px;
+          width: auto;
+          object-fit: contain;
+          background: #FFFFFF;
+          padding: 3px 8px;
+          border-radius: 4px;
         }
         .sidebar-title {
           font-size: 14px;

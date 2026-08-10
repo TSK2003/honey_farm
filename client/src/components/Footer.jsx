@@ -18,9 +18,13 @@ export default function Footer() {
           margin-bottom: 40px;
         }
         .footer-brand img {
-          height: 50px;
+          height: 54px;
+          width: auto;
+          object-fit: contain;
           margin-bottom: 16px;
-          filter: brightness(0) invert(1);
+          background: #FFFFFF;
+          padding: 4px 10px;
+          border-radius: 6px;
         }
         .footer-brand p {
           color: #A69686;
