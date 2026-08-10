@@ -1,83 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard';
-
-const DEFAULT_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Pure Natural Honey',
-    slug: 'pure-natural-honey',
-    category_name: 'Natural Honey',
-    rating: 5.0,
-    review_count: 14,
-    is_featured: 1,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-natural-honey.png' }],
-    variants: [{ weight: '250g', price: 199, mrp: 249, stock: 50 }]
-  },
-  {
-    id: 2,
-    name: 'Natural Honey Comb',
-    slug: 'natural-honey-comb',
-    category_name: 'Honey Comb',
-    rating: 4.9,
-    review_count: 9,
-    is_featured: 1,
-    is_best_seller: 0,
-    images: [{ url: '/images/product-honeycomb.png' }],
-    variants: [{ weight: '250g', price: 349, mrp: 449, stock: 20 }]
-  },
-  {
-    id: 3,
-    name: 'Premium Honey',
-    slug: 'premium-honey',
-    category_name: 'Premium Honey',
-    rating: 5.0,
-    review_count: 22,
-    is_featured: 1,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-premium-honey.png' }],
-    variants: [{ weight: '250g', price: 299, mrp: 399, stock: 25 }]
-  },
-  {
-    id: 4,
-    name: 'Premium Honey Gift Pack',
-    slug: 'premium-honey-gift-pack',
-    category_name: 'Honey Gift Packs',
-    rating: 4.8,
-    review_count: 7,
-    is_featured: 1,
-    is_best_seller: 0,
-    images: [{ url: '/images/product-gift-pack.png' }],
-    variants: [{ weight: '500g', price: 799, mrp: 999, stock: 20 }]
-  },
-  {
-    id: 5,
-    name: 'Forest Honey',
-    slug: 'forest-honey',
-    category_name: 'Natural Honey',
-    rating: 4.9,
-    review_count: 18,
-    is_featured: 0,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-forest-honey.png' }],
-    variants: [{ weight: '250g', price: 249, mrp: 329, stock: 30 }]
-  }
-];
-
-const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'Natural Honey', slug: 'natural-honey' },
-  { id: 2, name: 'Honey Comb', slug: 'honey-comb' },
-  { id: 3, name: 'Premium Honey', slug: 'premium-honey' },
-  { id: 4, name: 'Honey Gift Packs', slug: 'honey-gift-packs' },
-  { id: 5, name: 'Bee Products', slug: 'bee-products' }
-];
+import { getProducts, getCategories } from '../../services/firebaseService';
 
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState(DEFAULT_PRODUCTS);
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const selectedCategory = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
@@ -95,9 +25,8 @@ export default function ShopPage() {
 
   async function fetchCategories() {
     try {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      if (Array.isArray(data)) setCategories(data);
+      const data = await getCategories();
+      setCategories(data);
     } catch (err) {
       console.error(err);
     }
@@ -106,18 +35,15 @@ export default function ShopPage() {
   async function fetchProducts() {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (searchQuery) params.append('search', searchQuery);
-      if (sortOption) params.append('sort', sortOption);
-      if (selectedWeight) params.append('weight', selectedWeight);
-      if (availability) params.append('availability', availability);
+      const options = {
+        category: selectedCategory,
+        search: searchQuery,
+        sort: sortOption,
+        weight: selectedWeight
+      };
 
-      const res = await fetch(`/api/products?${params.toString()}`);
-      const data = await res.json();
-      if (data.products && data.products.length > 0) {
-        setProducts(data.products);
-      }
+      const data = await getProducts(options);
+      setProducts(data);
     } catch (err) {
       console.error(err);
     } finally {

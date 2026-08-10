@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { createOrder } from '../../services/firebaseService';
 
 export default function CheckoutPage() {
   const { cart, cartSubtotal, clearCart } = useCart();
@@ -43,32 +44,27 @@ export default function CheckoutPage() {
     try {
       const orderItems = cart.map(item => ({
         variant_id: item.variant_id,
-        quantity: item.quantity
+        product_name: item.name,
+        variant_weight: item.weight,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity
       }));
 
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('khf_customer_token')}`
-        },
-        body: JSON.stringify({
-          items: orderItems,
-          shipping: formData,
-          notes: formData.notes
-        })
+      const newOrder = await createOrder({
+        items: orderItems,
+        shipping: formData,
+        subtotal: cartSubtotal,
+        shipping_charge: shippingCharge,
+        total: grandTotal,
+        notes: formData.notes
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to place order');
-      }
 
       clearCart();
       addToast('Order placed successfully!', 'success');
-      navigate('/order-success', { state: { order: data } });
+      navigate(`/order-success/${newOrder.order_number}`);
     } catch (err) {
-      addToast(err.message, 'error');
+      addToast(err.message || 'Error placing order', 'error');
     } finally {
       setSubmitting(false);
     }

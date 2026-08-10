@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getOrderById, updateOrderStage } from '../../services/firebaseService';
 
 export default function OrderDetail() {
   const { id } = useParams();
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [order, setOrder] = useState(null);
   const [currentStatus, setCurrentStatus] = useState('');
@@ -28,12 +27,11 @@ export default function OrderDetail() {
 
   async function fetchOrder() {
     try {
-      const res = await fetch(`/api/orders/admin/${id}`, {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      setOrder(data);
-      setCurrentStatus(data.order_status);
+      const data = await getOrderById(id);
+      if (data) {
+        setOrder(data);
+        setCurrentStatus(data.order_status);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,22 +41,13 @@ export default function OrderDetail() {
 
   const updateStageTo = async (newStageKey) => {
     try {
-      const res = await fetch(`/api/orders/admin/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify({ order_status: newStageKey })
-      });
-      if (res.ok) {
-        const stageObj = STAGES.find(s => s.key === newStageKey);
-        const name = stageObj ? stageObj.label : newStageKey.toUpperCase();
-        addToast(`Order stage updated to: ${name}`, 'success');
-        fetchOrder();
-      }
+      await updateOrderStage(id, newStageKey);
+      const stageObj = STAGES.find(s => s.key === newStageKey);
+      const name = stageObj ? stageObj.label : newStageKey.toUpperCase();
+      addToast(`Order stage updated to: ${name}`, 'success');
+      fetchOrder();
     } catch (err) {
-      addToast('Error updating order stage', 'error');
+      addToast(err.message || 'Error updating order stage', 'error');
     }
   };
 

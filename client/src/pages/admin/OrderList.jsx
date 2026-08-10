@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
+import { getOrders } from '../../services/firebaseService';
 
 export default function OrderList() {
-  const { getAdminToken } = useAuth();
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -17,11 +16,16 @@ export default function OrderList() {
   async function fetchOrders() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/admin/all?status=${statusFilter}&search=${encodeURIComponent(search)}`, {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      if (data.orders) setOrders(data.orders);
+      let data = await getOrders(statusFilter);
+      if (search) {
+        const q = search.toLowerCase();
+        data = data.filter(o => 
+          (o.order_number && o.order_number.toLowerCase().includes(q)) ||
+          (o.shipping_name && o.shipping_name.toLowerCase().includes(q)) ||
+          (o.shipping_phone && o.shipping_phone.toLowerCase().includes(q))
+        );
+      }
+      setOrders(data);
     } catch (err) {
       console.error(err);
     } finally {

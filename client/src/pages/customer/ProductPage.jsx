@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
+import { getProductBySlug } from '../../services/firebaseService';
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -21,17 +22,17 @@ export default function ProductPage() {
     async function fetchProduct() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/products/${slug}`);
-        if (!res.ok) throw new Error('Product not found');
-        const data = await res.json();
-        setProduct(data);
-        if (data.variants && data.variants.length > 0) {
-          setSelectedVariant(data.variants[0]);
-        }
-        if (data.images && data.images.length > 0) {
-          setActiveImage(data.images[0].url);
-        } else {
-          setActiveImage('/images/product-natural-honey.png');
+        const data = await getProductBySlug(slug);
+        if (data) {
+          setProduct(data);
+          if (data.variants && data.variants.length > 0) {
+            setSelectedVariant(data.variants[0]);
+          }
+          if (data.images && data.images.length > 0) {
+            setActiveImage(data.images[0].url);
+          } else {
+            setActiveImage('/images/product-natural-honey.png');
+          }
         }
       } catch (err) {
         console.error(err);

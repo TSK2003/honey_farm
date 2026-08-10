@@ -1,101 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../../components/ProductCard';
-
-const DEFAULT_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Pure Natural Honey',
-    slug: 'pure-natural-honey',
-    category_name: 'Natural Honey',
-    rating: 5.0,
-    review_count: 14,
-    is_featured: 1,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-natural-honey.png' }],
-    variants: [{ weight: '250g', price: 199, mrp: 249, stock: 50 }]
-  },
-  {
-    id: 2,
-    name: 'Natural Honey Comb',
-    slug: 'natural-honey-comb',
-    category_name: 'Honey Comb',
-    rating: 4.9,
-    review_count: 9,
-    is_featured: 1,
-    is_best_seller: 0,
-    images: [{ url: '/images/product-honeycomb.png' }],
-    variants: [{ weight: '250g', price: 349, mrp: 449, stock: 20 }]
-  },
-  {
-    id: 3,
-    name: 'Premium Honey',
-    slug: 'premium-honey',
-    category_name: 'Premium Honey',
-    rating: 5.0,
-    review_count: 22,
-    is_featured: 1,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-premium-honey.png' }],
-    variants: [{ weight: '250g', price: 299, mrp: 399, stock: 25 }]
-  },
-  {
-    id: 4,
-    name: 'Premium Honey Gift Pack',
-    slug: 'premium-honey-gift-pack',
-    category_name: 'Honey Gift Packs',
-    rating: 4.8,
-    review_count: 7,
-    is_featured: 1,
-    is_best_seller: 0,
-    images: [{ url: '/images/product-gift-pack.png' }],
-    variants: [{ weight: '500g', price: 799, mrp: 999, stock: 20 }]
-  },
-  {
-    id: 5,
-    name: 'Forest Honey',
-    slug: 'forest-honey',
-    category_name: 'Natural Honey',
-    rating: 4.9,
-    review_count: 18,
-    is_featured: 0,
-    is_best_seller: 1,
-    images: [{ url: '/images/product-forest-honey.png' }],
-    variants: [{ weight: '250g', price: 249, mrp: 329, stock: 30 }]
-  }
-];
-
-const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'Natural Honey', slug: 'natural-honey' },
-  { id: 2, name: 'Honey Comb', slug: 'honey-comb' },
-  { id: 3, name: 'Premium Honey', slug: 'premium-honey' },
-  { id: 4, name: 'Honey Gift Packs', slug: 'honey-gift-packs' },
-  { id: 5, name: 'Bee Products', slug: 'bee-products' }
-];
+import { getProducts, getCategories } from '../../services/firebaseService';
 
 export default function HomePage() {
-  const [featuredProducts, setFeaturedProducts] = useState(DEFAULT_PRODUCTS.filter(p => p.is_featured));
-  const [bestSellers, setBestSellers] = useState(DEFAULT_PRODUCTS.filter(p => p.is_best_seller));
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [bestSellers, setBestSellers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [prodRes, catRes] = await Promise.all([
-          fetch('/api/products?limit=10'),
-          fetch('/api/categories')
+        const [prods, cats] = await Promise.all([
+          getProducts(),
+          getCategories()
         ]);
-        const prodData = await prodRes.json();
-        const catData = await catRes.json();
 
-        if (prodData.products && prodData.products.length > 0) {
-          setFeaturedProducts(prodData.products.filter(p => p.is_featured));
-          setBestSellers(prodData.products.filter(p => p.is_best_seller));
+        if (prods && prods.length > 0) {
+          setFeaturedProducts(prods.filter(p => p.is_featured));
+          setBestSellers(prods.filter(p => p.is_best_seller));
         }
-        if (Array.isArray(catData) && catData.length > 0) {
-          setCategories(catData);
+        if (cats && cats.length > 0) {
+          setCategories(cats);
         }
 
         setReviews([
@@ -104,7 +32,9 @@ export default function HomePage() {
           { id: 3, name: 'Anand V.', location: 'Madurai', rating: 5, comment: 'Fast delivery and premium packaging. The raw honey flavor is distinct and delicious.' }
         ]);
       } catch (err) {
-        console.error('Error fetching homepage data:', err);
+        console.error('Error fetching homepage data from Firebase:', err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchData();
