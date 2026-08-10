@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "honey-farm-f6852",
     "public": "client/dist",
     "ignore": [
       "firebase.json",
