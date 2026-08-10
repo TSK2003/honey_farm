@@ -1,36 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
+import { getOrders, getProducts } from '../../services/firebaseService';
 
 export default function Dashboard() {
-  const { getAdminToken } = useAuth();
-  const [salesReport, setSalesReport] = useState(null);
-  const [productReport, setProductReport] = useState(null);
-  const [inventoryReport, setInventoryReport] = useState(null);
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDashboardData() {
-      const headers = { 'Authorization': `Bearer ${getAdminToken()}` };
       try {
-        const [salesRes, prodRes, invRes, orderRes] = await Promise.all([
-          fetch('/api/reports/sales', { headers }),
-          fetch('/api/reports/products', { headers }),
-          fetch('/api/reports/inventory', { headers }),
-          fetch('/api/orders/admin/all?limit=5', { headers })
+        const [ordersData, prodsData] = await Promise.all([
+          getOrders('all'),
+          getProducts()
         ]);
-
-        const salesData = await salesRes.json();
-        const prodData = await prodRes.json();
-        const invData = await invRes.json();
-        const orderData = await orderRes.json();
-
-        setSalesReport(salesData);
-        setProductReport(prodData);
-        setInventoryReport(invData);
-        if (orderData.orders) setRecentOrders(orderData.orders);
+        setOrders(ordersData || []);
+        setProducts(prodsData || []);
       } catch (err) {
         console.error('Dashboard data error:', err);
       } finally {
@@ -41,6 +27,26 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return <AdminLayout title="Dashboard"><div className="loader"><div className="spinner"></div></div></AdminLayout>;
+
+  // Calculations
+  const validOrders = orders.filter(o => o.order_status !== 'cancelled');
+  const totalRevenue = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.order_status === 'pending').length;
+  const activeProducts = products.length;
+  
+  let lowStockAlerts = 0;
+  let totalUnits = 0;
+  products.forEach(p => {
+    if (p.variants) {
+      p.variants.forEach(v => {
+        totalUnits += (v.stock || 0);
+        if ((v.stock || 0) <= (v.low_stock_threshold || 5)) lowStockAlerts++;
+      });
+    }
+  });
+
+  const recentOrders = orders.slice(0, 5);
 
   return (
     <AdminLayout title="Dashboard">
@@ -60,19 +66,19 @@ export default function Dashboard() {
         .stat-val {
           font-size: 24px;
           font-weight: 700;
-          color: #2C1810;
+          color: #C17817;
           margin-top: 4px;
         }
         .stat-lbl {
           font-size: 11px;
+          font-weight: 700;
           color: #8B7B6B;
           text-transform: uppercase;
-          font-weight: 600;
         }
-        @media (max-width: 1200px) {
+        @media (max-width: 1024px) {
           .stat-grid { grid-template-columns: repeat(3, 1fr); }
         }
-        @media (max-width: 600px) {
+        @media (max-width: 640px) {
           .stat-grid { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>
@@ -81,100 +87,83 @@ export default function Dashboard() {
       <div className="stat-grid">
         <div className="stat-card">
           <div className="stat-lbl">Total Revenue</div>
-          <div className="stat-val" style={{ color: '#C17817' }}>₹{salesReport?.total_revenue || 0}</div>
+          <div className="stat-val">₹{totalRevenue}</div>
         </div>
         <div className="stat-card">
           <div className="stat-lbl">Total Orders</div>
-          <div className="stat-val">{salesReport?.total_orders || 0}</div>
+          <div className="stat-val">{totalOrders}</div>
         </div>
         <div className="stat-card">
           <div className="stat-lbl">Pending Orders</div>
-          <div className="stat-val" style={{ color: '#E65100' }}>
-            {salesReport?.status_breakdown?.find(s => s.order_status === 'pending')?.count || 0}
-          </div>
+          <div className="stat-val" style={{ color: pendingOrders > 0 ? '#C44B3F' : '#4A7C59' }}>{pendingOrders}</div>
         </div>
         <div className="stat-card">
           <div className="stat-lbl">Active Products</div>
-          <div className="stat-val">{productReport?.active_products || 0}</div>
+          <div className="stat-val">{activeProducts}</div>
         </div>
         <div className="stat-card">
           <div className="stat-lbl">Low Stock Alerts</div>
-          <div className="stat-val" style={{ color: '#C44B3F' }}>{inventoryReport?.low_stock?.length || 0}</div>
+          <div className="stat-val" style={{ color: lowStockAlerts > 0 ? '#C44B3F' : '#4A7C59' }}>{lowStockAlerts}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-lbl">Total Units</div>
-          <div className="stat-val">{inventoryReport?.total_stock_units || 0}</div>
+          <div className="stat-lbl">Total Stock Units</div>
+          <div className="stat-val">{totalUnits}</div>
         </div>
       </div>
 
-      {/* Main Grid */}
       <div className="grid grid-2" style={{ gap: '24px' }}>
         {/* Recent Orders */}
-        <div className="card">
-          <div className="card-body" style={{ borderBottom: '1px solid #E5E0D8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Recent Customer Orders</h3>
             <Link to="/admin/orders" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>View All →</Link>
           </div>
-          <div className="table-container" style={{ border: 'none' }}>
+          {recentOrders.length === 0 ? (
+            <p style={{ color: '#8B7B6B', fontSize: '13px', textAlign: 'center', padding: '24px' }}>No orders placed yet</p>
+          ) : (
             <table className="table">
               <thead>
-                <tr>
-                  <th>Order #</th>
-                  <th>Customer</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                </tr>
+                <tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr>
               </thead>
               <tbody>
                 {recentOrders.map(o => (
                   <tr key={o.id}>
+                    <td style={{ fontWeight: 600 }}>#{o.order_number}</td>
+                    <td>{o.shipping_name}</td>
+                    <td>₹{o.total}</td>
+                    <td><span className="badge badge-primary">{o.order_status?.toUpperCase()}</span></td>
                     <td>
-                      <Link to={`/admin/orders/${o.id}`} style={{ fontWeight: 600, color: '#C17817' }}>
-                        {o.order_number}
+                      <Link to={`/admin/orders/${o.id}`} style={{ color: '#C17817', fontWeight: 600, fontSize: '12px' }}>
+                        Manage
                       </Link>
                     </td>
-                    <td>{o.customer_name || o.shipping_name}</td>
-                    <td>₹{o.total}</td>
-                    <td><span className="badge badge-primary">{o.order_status}</span></td>
                   </tr>
                 ))}
-                {recentOrders.length === 0 && (
-                  <tr><td colSpan="4" style={{ textAlign: 'center', color: '#8B7B6B' }}>No orders placed yet</td></tr>
-                )}
               </tbody>
             </table>
-          </div>
+          )}
         </div>
 
         {/* Top Selling Products */}
-        <div className="card">
-          <div className="card-body" style={{ borderBottom: '1px solid #E5E0D8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Top Selling Honey Products</h3>
+        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Top Honey Products</h3>
             <Link to="/admin/products" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>Manage Products →</Link>
           </div>
-          <div className="table-container" style={{ border: 'none' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Units Sold</th>
-                  <th>Revenue</th>
+          <table className="table">
+            <thead>
+              <tr><th>Product</th><th>Category</th><th>Rating</th></tr>
+            </thead>
+            <tbody>
+              {products.slice(0, 5).map(p => (
+                <tr key={p.id}>
+                  <td style={{ fontWeight: 600 }}>{p.name}</td>
+                  <td>{p.category_name}</td>
+                  <td>⭐ {p.rating || 5.0}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {productReport?.best_sellers?.map((bs, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{bs.product_name}</td>
-                    <td>{bs.units_sold}</td>
-                    <td>₹{bs.revenue}</td>
-                  </tr>
-                ))}
-                {(!productReport?.best_sellers || productReport.best_sellers.length === 0) && (
-                  <tr><td colSpan="3" style={{ textAlign: 'center', color: '#8B7B6B' }}>No sales data yet</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </AdminLayout>

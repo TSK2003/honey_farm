@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { getOrderById } from '../../services/firebaseService';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -9,11 +10,8 @@ export default function OrderDetailPage() {
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const res = await fetch(`/api/orders/my-orders/${id}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('khf_customer_token')}` }
-        });
-        const data = await res.json();
-        setOrder(data);
+        const data = await getOrderById(id);
+        if (data) setOrder(data);
       } catch (err) {
         console.error(err);
       } finally {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getOrders } from '../../services/firebaseService';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -8,10 +9,7 @@ export default function OrdersPage() {
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const res = await fetch('/api/orders/my-orders', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('khf_customer_token')}` }
-        });
-        const data = await res.json();
+        const data = await getOrders('all');
         if (Array.isArray(data)) setOrders(data);
       } catch (err) {
         console.error(err);
