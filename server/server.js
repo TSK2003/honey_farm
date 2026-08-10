@@ -118,16 +118,18 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log('\n============================================================');
-  console.log('🐝 KAMALA HONEY FARM - ECOMMERCE SERVER STARTED');
-  console.log('============================================================');
-  console.log(`🌐 Customer Website : http://localhost:${PORT}`);
-  console.log(`🔐 Admin Panel Login: http://localhost:${PORT}/admin/login`);
-  console.log('------------------------------------------------------------');
-  console.log('Admin Email   : admin@kamalahoney.com');
-  console.log('Admin Password: KamalaAdmin@2026');
-  console.log('============================================================\n');
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('\n============================================================');
+    console.log('🐝 KAMALA HONEY FARM - ECOMMERCE SERVER STARTED');
+    console.log('============================================================');
+    console.log(`🌐 Customer Website : http://localhost:${PORT}`);
+    console.log(`🔐 Admin Panel Login: http://localhost:${PORT}/admin/login`);
+    console.log('------------------------------------------------------------');
+    console.log('Admin Email   : admin@kamalahoney.com');
+    console.log('Admin Password: KamalaAdmin@2026');
+    console.log('============================================================\n');
+  });
+}
 
 module.exports = app;
