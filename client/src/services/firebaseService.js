@@ -419,3 +419,54 @@ export async function getSettings() {
 export async function saveSettings(settingsData) {
   await setDoc(doc(db, 'settings', 'general'), settingsData, { merge: true });
 }
+
+// ============================================================
+// AUTHENTICATION SERVICES (FIREBASE FIRESTORE AUTH)
+// ============================================================
+export async function registerCustomerFirebase({ name, email, password, phone }) {
+  await ensureFirestoreSeeded();
+  const q = query(collection(db, 'customers'), where('email', '==', email.toLowerCase()));
+  const existingSnap = await getDocs(q);
+  if (!existingSnap.empty) {
+    throw new Error('An account with this email already exists');
+  }
+
+  const customerData = {
+    name,
+    email: email.toLowerCase(),
+    phone: phone || '',
+    password,
+    created_at: new Date().toISOString()
+  };
+
+  const docRef = await addDoc(collection(db, 'customers'), customerData);
+  const customerObj = { id: docRef.id, name, email, phone };
+  return { customer: customerObj, token: `fb_token_${docRef.id}` };
+}
+
+export async function loginCustomerFirebase({ email, password }) {
+  await ensureFirestoreSeeded();
+  const q = query(collection(db, 'customers'), where('email', '==', email.toLowerCase()));
+  const snap = await getDocs(q);
+  
+  if (snap.empty) {
+    throw new Error('Invalid email or password');
+  }
+
+  const docData = snap.docs[0].data();
+  if (docData.password !== password) {
+    throw new Error('Invalid email or password');
+  }
+
+  const customerObj = { id: snap.docs[0].id, name: docData.name, email: docData.email, phone: docData.phone };
+  return { customer: customerObj, token: `fb_token_${snap.docs[0].id}` };
+}
+
+export async function loginAdminFirebase({ email, password }) {
+  if (email.toLowerCase() === 'admin@kamalahoney.com' && password === 'KamalaAdmin@2026') {
+    const adminObj = { id: 'admin-1', name: 'Kamala Admin', email: 'admin@kamalahoney.com', role: 'super_admin' };
+    return { admin: adminObj, token: 'fb_admin_token_2026' };
+  } else {
+    throw new Error('Invalid admin email or password');
+  }
+}

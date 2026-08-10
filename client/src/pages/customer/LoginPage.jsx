@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { loginCustomerFirebase } from '../../services/firebaseService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,14 +19,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-
+      const data = await loginCustomerFirebase({ email, password });
       loginCustomer(data.customer, data.token);
       addToast('Logged in successfully', 'success');
       navigate(redirect);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { loginAdminFirebase } from '../../services/firebaseService';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('admin@kamalahoney.com');
@@ -15,14 +16,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-
+      const data = await loginAdminFirebase({ email, password });
       loginAdmin(data.admin, data.token);
       addToast('Welcome back, Admin', 'success');
       navigate('/admin');
