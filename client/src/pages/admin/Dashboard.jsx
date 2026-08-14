@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { 
+  IndianRupee, 
+  ShoppingBag, 
+  Clock, 
+  Package, 
+  AlertTriangle, 
+  Layers, 
+  Star, 
+  ArrowRight,
+  TrendingUp
+} from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { getOrders, getProducts } from '../../services/firebaseService';
 
@@ -40,8 +51,8 @@ export default function Dashboard() {
   products.forEach(p => {
     if (p.variants) {
       p.variants.forEach(v => {
-        totalUnits += (v.stock || 0);
-        if ((v.stock || 0) <= (v.low_stock_threshold || 5)) lowStockAlerts++;
+        totalUnits += (Number(v.stock) || 0);
+        if ((Number(v.stock) || 0) <= (Number(v.low_stock_threshold) || 5)) lowStockAlerts++;
       });
     }
   });
@@ -49,7 +60,7 @@ export default function Dashboard() {
   const recentOrders = orders.slice(0, 5);
 
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout title="Store Dashboard">
       <style>{`
         .stat-grid {
           display: grid;
@@ -116,22 +127,29 @@ export default function Dashboard() {
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Recent Customer Orders</h3>
-            <Link to="/admin/orders" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>View All →</Link>
+            <Link to="/admin/orders" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+              <span>View All</span>
+              <ArrowRight size={14} />
+            </Link>
           </div>
           {recentOrders.length === 0 ? (
             <p style={{ color: '#8B7B6B', fontSize: '13px', textAlign: 'center', padding: '24px' }}>No orders placed yet</p>
           ) : (
             <table className="table">
               <thead>
-                <tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr>
+                <tr><th>Order Reference</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr>
               </thead>
               <tbody>
                 {recentOrders.map(o => (
                   <tr key={o.id}>
-                    <td style={{ fontWeight: 600 }}>#{o.order_number}</td>
+                    <td style={{ fontWeight: 600, color: '#C17817' }}>#{o.order_number}</td>
                     <td>{o.shipping_name}</td>
-                    <td>₹{o.total}</td>
-                    <td><span className="badge badge-primary">{o.order_status?.toUpperCase()}</span></td>
+                    <td style={{ fontWeight: 600 }}>₹{o.total}</td>
+                    <td>
+                      <span className={`badge badge-${o.order_status === 'delivered' ? 'success' : o.order_status === 'cancelled' ? 'danger' : 'primary'}`}>
+                        {o.order_status?.toUpperCase()}
+                      </span>
+                    </td>
                     <td>
                       <Link to={`/admin/orders/${o.id}`} style={{ color: '#C17817', fontWeight: 600, fontSize: '12px' }}>
                         Manage
@@ -147,8 +165,11 @@ export default function Dashboard() {
         {/* Top Selling Products */}
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Top Honey Products</h3>
-            <Link to="/admin/products" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>Manage Products →</Link>
+            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Honey Products Catalog</h3>
+            <Link to="/admin/products" style={{ fontSize: '12px', color: '#C17817', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+              <span>Manage Products</span>
+              <ArrowRight size={14} />
+            </Link>
           </div>
           <table className="table">
             <thead>
@@ -159,7 +180,12 @@ export default function Dashboard() {
                 <tr key={p.id}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td>{p.category_name}</td>
-                  <td>⭐ {p.rating || 5.0}</td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <Star size={13} fill="#D4A24E" color="#D4A24E" />
+                      <span>{p.rating || '5.0'}</span>
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

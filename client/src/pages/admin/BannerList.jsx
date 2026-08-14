@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Image, Plus, UploadCloud, Trash2, FolderOpen } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getBanners, saveBanner } from '../../services/firebaseService';
 
 export default function BannerList() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newBanner, setNewBanner] = useState({ title: '', subtitle: '', image: '/images/hero-honey.png' });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchBanners();
@@ -15,10 +17,7 @@ export default function BannerList() {
 
   async function fetchBanners() {
     try {
-      const res = await fetch('/api/banners/admin/all', {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
+      const data = await getBanners();
       if (Array.isArray(data)) setBanners(data);
     } catch (err) {
       console.error(err);
@@ -27,31 +26,116 @@ export default function BannerList() {
     }
   }
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        addToast('Please select a valid image file', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setNewBanner({ ...newBanner, image: event.target.result });
+        addToast(`Banner image "${file.name}" loaded!`, 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddBanner = async (e) => {
+    e.preventDefault();
+    if (!newBanner.title || !newBanner.image) return;
+    try {
+      await saveBanner(newBanner);
+      addToast('Banner added to Firestore!', 'success');
+      setNewBanner({ title: '', subtitle: '', image: '/images/hero-honey.png' });
+      fetchBanners();
+    } catch (err) {
+      addToast('Error adding banner', 'error');
+    }
+  };
+
   return (
     <AdminLayout title="Homepage Banners">
-      <div style={{ background: 'white', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Active Banners</h3>
-        <p style={{ color: '#5C4A3A', fontSize: '13px', marginBottom: '20px' }}>
-          Manage hero banners and visual promotions displayed on the homepage.
-        </p>
+      <div className="grid grid-2" style={{ gap: '24px', marginBottom: '24px' }}>
+        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid #E8DFD3', boxShadow: '0 2px 8px rgba(44, 24, 16, 0.04)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', color: '#2C1810' }}>
+            <Plus size={18} color="#C17817" />
+            <span>Add Promotional Banner</span>
+          </h3>
+          <form onSubmit={handleAddBanner}>
+            <div className="form-group">
+              <label className="form-label">Banner Title</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={newBanner.title} 
+                onChange={(e) => setNewBanner({ ...newBanner, title: e.target.value })} 
+                placeholder="e.g. 100% Pure Natural Honey"
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Banner Subtitle</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={newBanner.subtitle} 
+                onChange={(e) => setNewBanner({ ...newBanner, subtitle: e.target.value })} 
+                placeholder="e.g. Harvested directly from our Tirunelveli apiaries"
+              />
+            </div>
 
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr><th>Title</th><th>Subtitle</th><th>Image</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {banners.map(b => (
-                <tr key={b.id}>
-                  <td style={{ fontWeight: 600 }}>{b.title || 'Hero Banner'}</td>
-                  <td>{b.subtitle}</td>
-                  <td><img src={b.image} alt="" style={{ width: '60px', height: '40px', objectFit: 'cover' }} /></td>
-                  <td><span className="badge badge-success">Active</span></td>
-                </tr>
-              ))}
-              {banners.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center' }}>No active banners</td></tr>}
-            </tbody>
-          </table>
+            {/* Direct File Upload */}
+            <div className="form-group">
+              <label className="form-label">Banner Image File</label>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                onChange={handleFileUpload} 
+              />
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <UploadCloud size={14} />
+                  <span>UPLOAD BANNER IMAGE</span>
+                </button>
+                {newBanner.image && (
+                  <img src={newBanner.image} alt="Preview" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #E8DFD3' }} />
+                )}
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+              <Plus size={16} />
+              <span>SAVE BANNER</span>
+            </button>
+          </form>
+        </div>
+
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#2C1810' }}>Active Banners</h3>
+          {loading ? (
+            <div className="loader"><div className="spinner"></div></div>
+          ) : banners.length === 0 ? (
+            <p style={{ color: '#8B7B6B' }}>No banners configured yet.</p>
+          ) : (
+            banners.map((b, i) => (
+              <div key={b.id || i} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E8DFD3', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <img src={b.image} alt={b.title} style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px' }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#2C1810' }}>{b.title}</div>
+                  <div style={{ fontSize: '12px', color: '#8B7B6B' }}>{b.subtitle}</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </AdminLayout>

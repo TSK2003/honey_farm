@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Mail, Check, Clock } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getAdminMessages, updateMessageStatus } from '../../services/firebaseService';
 
 export default function MessageList() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,11 +15,8 @@ export default function MessageList() {
 
   async function fetchMessages() {
     try {
-      const res = await fetch('/api/messages', {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      if (data.messages) setMessages(data.messages);
+      const data = await getAdminMessages();
+      if (Array.isArray(data)) setMessages(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -29,15 +26,8 @@ export default function MessageList() {
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      await fetch(`/api/messages/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify({ status })
-      });
-      addToast('Message status updated', 'success');
+      await updateMessageStatus(id, status);
+      addToast('Message marked as resolved in Firestore', 'success');
       fetchMessages();
     } catch (err) {
       addToast('Error updating status', 'error');
@@ -45,32 +35,48 @@ export default function MessageList() {
   };
 
   return (
-    <AdminLayout title="Customer Messages">
+    <AdminLayout title="Customer Inquiries & Messages">
       {loading ? (
         <div className="loader"><div className="spinner"></div></div>
       ) : (
         <div className="table-container" style={{ background: 'white' }}>
           <table className="table">
             <thead>
-              <tr><th>Date</th><th>Name</th><th>Contact</th><th>Subject</th><th>Message</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Date</th><th>Name</th><th>Contact</th><th>Subject</th><th>Message Content</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {messages.map(m => (
                 <tr key={m.id}>
                   <td style={{ fontSize: '12px', color: '#8B7B6B' }}>{new Date(m.created_at).toLocaleDateString()}</td>
                   <td style={{ fontWeight: 600 }}>{m.name}</td>
-                  <td>{m.phone || m.email}</td>
-                  <td>{m.subject || 'Inquiry'}</td>
-                  <td style={{ fontSize: '13px', maxWidth: '300px' }}>{m.message}</td>
-                  <td><span className={`badge badge-${m.status === 'resolved' ? 'success' : 'warning'}`}>{m.status}</span></td>
+                  <td>
+                    <div style={{ fontSize: '13px' }}>{m.phone || 'No phone'}</div>
+                    <div style={{ fontSize: '11px', color: '#8B7B6B' }}>{m.email}</div>
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{m.subject || 'General Inquiry'}</td>
+                  <td style={{ fontSize: '13px', maxWidth: '300px', lineHeight: '1.4' }}>{m.message}</td>
+                  <td>
+                    <span className={`badge badge-${m.status === 'resolved' ? 'success' : 'warning'}`}>
+                      {m.status?.toUpperCase()}
+                    </span>
+                  </td>
                   <td>
                     {m.status !== 'resolved' && (
-                      <button onClick={() => handleUpdateStatus(m.id, 'resolved')} className="btn btn-sm btn-primary">Mark Resolved</button>
+                      <button 
+                        onClick={() => handleUpdateStatus(m.id, 'resolved')} 
+                        className="btn btn-sm btn-primary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Check size={12} />
+                        <span>Resolve</span>
+                      </button>
                     )}
                   </td>
                 </tr>
               ))}
-              {messages.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center' }}>No messages submitted</td></tr>}
+              {messages.length === 0 && (
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#8B7B6B' }}>No contact inquiries received</td></tr>
+              )}
             </tbody>
           </table>
         </div>

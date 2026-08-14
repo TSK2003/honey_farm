@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
+import { CheckCircle2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { getOrders } from '../../services/firebaseService';
 
 export default function OrderSuccessPage() {
@@ -32,32 +33,34 @@ export default function OrderSuccessPage() {
   return (
     <div className="order-success-page section">
       <div className="container" style={{ maxWidth: '600px', textAlign: 'center' }}>
-        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
-        <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#2C1810', marginBottom: '8px' }}>Thank You for Your Order!</h1>
+        <div style={{ display: 'inline-flex', padding: '18px', borderRadius: '50%', background: '#E8F5E9', color: '#2E7D32', marginBottom: '20px', boxShadow: '0 4px 12px rgba(46, 125, 50, 0.15)' }}>
+          <CheckCircle2 size={56} />
+        </div>
+        <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#2C1810', marginBottom: '8px' }}>Thank You for Your Order!</h1>
         <p style={{ color: '#5C4A3A', fontSize: '16px', marginBottom: '24px' }}>
-          Your order of pure natural honey from Kamala Honey Farm has been placed successfully.
+          Your order of pure natural honey from Honey Bee Farm has been placed successfully.
         </p>
 
         {order ? (
-          <div style={{ background: '#FFF8ED', border: '1px solid #F0D48A', borderRadius: '8px', padding: '24px', marginBottom: '32px', textAlign: 'left' }}>
+          <div style={{ background: '#FFF8ED', border: '1px solid #F0D48A', borderRadius: '12px', padding: '24px', marginBottom: '32px', textAlign: 'left', boxShadow: '0 4px 12px rgba(193, 120, 23, 0.06)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontWeight: 600 }}>
-              <span>Order Number:</span>
-              <span style={{ color: '#C17817' }}>#{order.order_number}</span>
+              <span>Order Reference:</span>
+              <span style={{ color: '#C17817', fontWeight: 700 }}>#{order.order_number}</span>
             </div>
             {order.total > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span>Amount Payable (COD):</span>
-                <span>₹{order.total}</span>
+                <span style={{ fontWeight: 700 }}>₹{order.total}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Order Status:</span>
-              <span style={{ color: '#4A7C59', fontWeight: 600 }}>{order.order_status?.toUpperCase() || 'CONFIRMED'}</span>
+              <span style={{ color: '#2E7D32', fontWeight: 700 }}>{order.order_status?.toUpperCase() || 'CONFIRMED'}</span>
             </div>
           </div>
         ) : (
-          <div style={{ background: '#FFF8ED', border: '1px solid #F0D48A', borderRadius: '8px', padding: '24px', marginBottom: '32px', textAlign: 'center' }}>
-            <span style={{ color: '#C17817', fontWeight: 600 }}>Order Confirmation Submitted to Farm</span>
+          <div style={{ background: '#FFF8ED', border: '1px solid #F0D48A', borderRadius: '12px', padding: '24px', marginBottom: '32px', textAlign: 'center' }}>
+            <span style={{ color: '#C17817', fontWeight: 600 }}>Order Confirmation Submitted to Honey Bee Farm Apiaries</span>
           </div>
         )}
 

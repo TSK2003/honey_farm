@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Settings, Save } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useToast } from '../../context/ToastContext';
 import { getSettings, saveSettings } from '../../services/firebaseService';
@@ -6,13 +7,13 @@ import { getSettings, saveSettings } from '../../services/firebaseService';
 export default function BusinessSettings() {
   const { addToast } = useToast();
   const [settings, setSettings] = useState({
-    business_name: 'Kamala Honey Farm',
-    business_tagline: 'Natural Honey Farm',
+    business_name: 'Honey Bee Farm',
+    business_tagline: '100% Pure Natural Apiary Honey',
     business_phone: '7708510872',
     business_whatsapp: '7708510872',
-    business_email: 'contact@kamalahoneyfarm.com',
-    business_address: 'Tirunelveli, Tamil Nadu, India',
-    business_instagram: 'https://www.instagram.com/kamala_honey_farm_tirunelveli'
+    business_email: 'contact@honeybeefarm.com',
+    business_address: 'Honey Bee Farm Apiaries, Tirunelveli, Tamil Nadu, India',
+    business_instagram: 'https://www.instagram.com/honey_bee_farm_tirunelveli'
   });
 
   useEffect(() => {
@@ -34,15 +35,20 @@ export default function BusinessSettings() {
     e.preventDefault();
     try {
       await saveSettings(settings);
-      addToast('Business settings saved to Firebase!', 'success');
+      addToast('Business settings saved to Firestore!', 'success');
     } catch (err) {
       addToast('Error saving settings', 'error');
     }
   };
 
   return (
-    <AdminLayout title="Business Details Settings">
-      <form onSubmit={handleSave} style={{ maxWidth: '600px', background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
+    <AdminLayout title="Business Information Settings">
+      <form onSubmit={handleSave} style={{ maxWidth: '600px', background: '#FFFFFF', padding: '24px', borderRadius: '12px', border: '1px solid #E8DFD3', boxShadow: '0 2px 8px rgba(44, 24, 16, 0.04)' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Settings size={18} color="#C17817" />
+          <span>Farm & Contact Info</span>
+        </h3>
+
         <div className="form-group">
           <label className="form-label">Business Name</label>
           <input
@@ -106,7 +112,7 @@ export default function BusinessSettings() {
         </div>
 
         <div className="form-group">
-          <label className="form-label">Instagram Link</label>
+          <label className="form-label">Instagram Profile URL</label>
           <input
             type="text"
             className="form-input"
@@ -115,7 +121,10 @@ export default function BusinessSettings() {
           />
         </div>
 
-        <button type="submit" className="btn btn-primary">SAVE SETTINGS</button>
+        <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Save size={16} />
+          <span>SAVE BUSINESS SETTINGS</span>
+        </button>
       </form>
     </AdminLayout>
   );

@@ -43,10 +43,13 @@ try {
   const admin = db.prepare('SELECT id FROM admins LIMIT 1').get();
   if (!admin) {
     // Hash admin password before seeding
-    const hashedPassword = bcrypt.hashSync('KamalaAdmin@2026', 10);
-    const modifiedSeed = seedData.replace('$2b$10$placeholder_will_be_set_by_server', hashedPassword);
+    const hashedPassword = bcrypt.hashSync('HoneyBeeAdmin@2026', 10);
+    const modifiedSeed = seedData
+      .replace('$2b$10$placeholder_will_be_set_by_server', hashedPassword)
+      .replace(/admin@kamalahoney\.com/g, 'admin@honeybeefarm.com')
+      .replace(/Kamala/g, 'Honey Bee');
     db.exec(modifiedSeed);
-    console.log('Database seeded successfully');
+    console.log('Database seeded successfully for Honey Bee Farm');
   }
 } catch (err) {
   console.log('Seed note:', err.message);
@@ -121,13 +124,13 @@ process.on('SIGINT', () => {
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log('\n============================================================');
-    console.log('🐝 KAMALA HONEY FARM - ECOMMERCE SERVER STARTED');
+    console.log('🐝 HONEY BEE FARM - ECOMMERCE SERVER STARTED');
     console.log('============================================================');
     console.log(`🌐 Customer Website : http://localhost:${PORT}`);
     console.log(`🔐 Admin Panel Login: http://localhost:${PORT}/admin/login`);
     console.log('------------------------------------------------------------');
-    console.log('Admin Email   : admin@kamalahoney.com');
-    console.log('Admin Password: KamalaAdmin@2026');
+    console.log('Admin Email   : admin@honeybeefarm.com');
+    console.log('Admin Password: HoneyBeeAdmin@2026');
     console.log('============================================================\n');
   });
 }

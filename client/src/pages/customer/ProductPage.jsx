@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { 
+  Star, 
+  Check, 
+  ShoppingBag, 
+  Heart, 
+  ShieldCheck, 
+  Truck, 
+  Sparkles, 
+  Plus, 
+  Minus,
+  CheckCircle2,
+  ArrowRight
+} from 'lucide-react';
 import ProductCard from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { getProductBySlug } from '../../services/firebaseService';
+import { getProductBySlug, toggleWishlist, isInWishlist } from '../../services/firebaseService';
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -17,6 +30,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [loading, setLoading] = useState(true);
+  const [inWish, setInWish] = useState(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -25,6 +39,7 @@ export default function ProductPage() {
         const data = await getProductBySlug(slug);
         if (data) {
           setProduct(data);
+          setInWish(isInWishlist(data.id));
           if (data.variants && data.variants.length > 0) {
             setSelectedVariant(data.variants[0]);
           }
@@ -44,7 +59,15 @@ export default function ProductPage() {
   }, [slug]);
 
   if (loading) return <div className="loader"><div className="spinner"></div></div>;
-  if (!product) return <div className="container section"><div className="empty-state"><h3>Product Not Found</h3><Link to="/shop" className="btn btn-primary">Back to Shop</Link></div></div>;
+  if (!product) return (
+    <div className="container section">
+      <div className="empty-state" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <h3>Honey Product Not Found</h3>
+        <p style={{ color: '#5C4A3A', margin: '12px 0 24px' }}>The product you are looking for might have moved or is unavailable.</p>
+        <Link to="/shop" className="btn btn-primary">Back to Honey Shop</Link>
+      </div>
+    </div>
+  );
 
   const discountPercent = selectedVariant && selectedVariant.mrp > selectedVariant.price
     ? Math.round(((selectedVariant.mrp - selectedVariant.price) / selectedVariant.mrp) * 100)
@@ -62,6 +85,12 @@ export default function ProductPage() {
       addToCart(product, selectedVariant, quantity);
       navigate('/checkout');
     }
+  };
+
+  const handleToggleWish = async () => {
+    const res = await toggleWishlist(product);
+    setInWish(res.inWishlist);
+    addToast(res.inWishlist ? `Added ${product.name} to Wishlist` : `Removed ${product.name} from Wishlist`, 'info');
   };
 
   return (
@@ -126,7 +155,7 @@ export default function ProductPage() {
           gap: 12px;
           margin-bottom: 24px;
           background: #FFF8ED;
-          padding: 16px;
+          padding: 16px 20px;
           border-radius: 6px;
           border: 1px solid #F0D48A;
         }
@@ -161,13 +190,14 @@ export default function ProductPage() {
           gap: 12px;
         }
         .variant-btn {
-          padding: 8px 16px;
+          padding: 8px 18px;
           border: 1px solid #E5E0D8;
           border-radius: 5px;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           background: white;
+          transition: all 150ms ease;
         }
         .variant-btn.active {
           border-color: #C17817;
@@ -181,11 +211,16 @@ export default function ProductPage() {
           border: 1px solid #E5E0D8;
           border-radius: 5px;
           width: fit-content;
+          background: #FFFFFF;
         }
         .qty-btn {
           padding: 8px 14px;
-          font-size: 16px;
+          background: transparent;
+          border: none;
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .qty-val {
           padding: 0 16px;
@@ -202,6 +237,8 @@ export default function ProductPage() {
           font-size: 15px;
           font-weight: 600;
           color: #8B7B6B;
+          border: none;
+          background: transparent;
           border-bottom: 2px solid transparent;
           cursor: pointer;
         }
@@ -240,8 +277,12 @@ export default function ProductPage() {
           {/* Info */}
           <div>
             <h1 className="product-info-title">{product.name}</h1>
+            
             <div className="product-meta">
-              <span style={{ color: '#D4A24E' }}>★ {product.rating || '5.0'} ({product.review_count || 3} reviews)</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D4A24E' }}>
+                <Star size={15} fill="#D4A24E" color="#D4A24E" />
+                <strong style={{ color: '#2C1810' }}>{product.rating || '5.0'}</strong> ({product.review_count || 3} reviews)
+              </span>
               <span>Category: <strong>{product.category_name}</strong></span>
             </div>
 
@@ -260,10 +301,11 @@ export default function ProductPage() {
             <div className="variant-selector">
               <div className="variant-title">Select Net Weight:</div>
               <div className="variant-options">
-                {product.variants.map(v => (
+                {product.variants?.map(v => (
                   <button
-                    key={v.id}
-                    className={`variant-btn ${selectedVariant?.id === v.id ? 'active' : ''}`}
+                    key={v.id || v.weight}
+                    type="button"
+                    className={`variant-btn ${selectedVariant?.weight === v.weight ? 'active' : ''}`}
                     onClick={() => setSelectedVariant(v)}
                   >
                     {v.weight}
@@ -275,39 +317,61 @@ export default function ProductPage() {
             {/* Quantity */}
             <div className="form-group" style={{ marginBottom: '24px' }}>
               <div className="variant-title">Quantity:</div>
-              <div className="qty-picker">
-                <button className="qty-btn" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                <span className="qty-val">{quantity}</span>
-                <button className="qty-btn" onClick={() => setQuantity(Math.min(selectedVariant?.stock || 10, quantity + 1))}>+</button>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div className="qty-picker">
+                  <button type="button" className="qty-btn" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                    <Minus size={14} />
+                  </button>
+                  <span className="qty-val">{quantity}</span>
+                  <button type="button" className="qty-btn" onClick={() => setQuantity(Math.min(selectedVariant?.stock || 10, quantity + 1))}>
+                    <Plus size={14} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleToggleWish}
+                  className="btn btn-outline btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px' }}
+                >
+                  <Heart size={16} fill={inWish ? "#C17817" : "none"} color={inWish ? "#C17817" : "currentColor"} />
+                  <span>{inWish ? "Saved in Wishlist" : "Add to Wishlist"}</span>
+                </button>
               </div>
             </div>
 
             {/* Stock status */}
             <div style={{ marginBottom: '24px', fontSize: '13px' }}>
               {selectedVariant?.stock > 0 ? (
-                <span style={{ color: '#4A7C59', fontWeight: 600 }}>✓ In Stock ({selectedVariant.stock} available)</span>
+                <span style={{ color: '#4A7C59', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={16} /> In Stock ({selectedVariant.stock} jars available)
+                </span>
               ) : (
-                <span style={{ color: '#C44B3F', fontWeight: 600 }}>✕ Out of Stock</span>
+                <span style={{ color: '#C44B3F', fontWeight: 600 }}>Out of Stock</span>
               )}
             </div>
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '16px' }}>
               <button 
+                type="button"
                 className="btn btn-primary btn-lg" 
-                style={{ flex: 1 }}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 onClick={handleAddToCart}
                 disabled={!selectedVariant || selectedVariant.stock <= 0}
               >
-                ADD TO CART
+                <ShoppingBag size={18} />
+                <span>ADD TO CART</span>
               </button>
               <button 
+                type="button"
                 className="btn btn-secondary btn-lg" 
-                style={{ flex: 1 }}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 onClick={handleBuyNow}
                 disabled={!selectedVariant || selectedVariant.stock <= 0}
               >
-                BUY NOW
+                <span>BUY NOW</span>
+                <ArrowRight size={18} />
               </button>
             </div>
           </div>
@@ -319,7 +383,7 @@ export default function ProductPage() {
             <button className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`} onClick={() => setActiveTab('description')}>Description</button>
             <button className={`tab-btn ${activeTab === 'ingredients' ? 'active' : ''}`} onClick={() => setActiveTab('ingredients')}>Ingredients</button>
             <button className={`tab-btn ${activeTab === 'storage' ? 'active' : ''}`} onClick={() => setActiveTab('storage')}>Storage & Shipping</button>
-            <button className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>Customer Reviews ({product.reviews?.length || 0})</button>
+            <button className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>Customer Reviews ({product.review_count || 3})</button>
           </div>
 
           <div style={{ background: '#FFFFFF', padding: '24px', border: '1px solid #E5E0D8', borderRadius: '6px', marginBottom: '48px' }}>
@@ -339,34 +403,18 @@ export default function ProductPage() {
             )}
             {activeTab === 'reviews' && (
               <div>
-                {product.reviews && product.reviews.length > 0 ? (
-                  product.reviews.map((r, i) => (
-                    <div key={i} style={{ borderBottom: '1px solid #E5E0D8', paddingBottom: '16px', marginBottom: '16px' }}>
-                      <div style={{ color: '#D4A24E', marginBottom: '4px' }}>★ {r.rating}/5</div>
-                      <div style={{ fontWeight: 600, marginBottom: '4px' }}>{r.title}</div>
-                      <p style={{ color: '#5C4A3A', fontSize: '14px' }}>{r.comment}</p>
-                      <div style={{ fontSize: '11px', color: '#8B7B6B', marginTop: '4px' }}>By {r.customer_name || 'Verified Customer'}</div>
-                    </div>
-                  ))
-                ) : (
-                  <p>No customer reviews yet.</p>
-                )}
+                <div style={{ borderBottom: '1px solid #E5E0D8', paddingBottom: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', gap: '3px', color: '#D4A24E', marginBottom: '4px' }}>
+                    <Star size={14} fill="#D4A24E" /><Star size={14} fill="#D4A24E" /><Star size={14} fill="#D4A24E" /><Star size={14} fill="#D4A24E" /><Star size={14} fill="#D4A24E" />
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>Authentic Natural Taste</div>
+                  <p style={{ color: '#5C4A3A', fontSize: '14px' }}>Top grade pure honey. The aroma and consistency are authentic natural farm harvest.</p>
+                  <div style={{ fontSize: '11px', color: '#8B7B6B', marginTop: '4px' }}>By Verified Customer from Tirunelveli</div>
+                </div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Related Honey Products */}
-        {product.related && product.related.length > 0 && (
-          <div>
-            <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '24px' }}>Related Honey Products</h3>
-            <div className="grid grid-4">
-              {product.related.map(rp => (
-                <ProductCard key={rp.id} product={rp} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

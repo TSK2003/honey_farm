@@ -1,63 +1,86 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { MapPin, Phone, ShieldCheck, ArrowRight, Award, CheckCircle2, Lock } from 'lucide-react';
+import { InstagramIcon } from './Icons';
 
 export default function Footer() {
   return (
-    <footer className="footer">
+    <footer className="site-footer">
       <style>{`
-        .footer {
-          background: #2C1810;
-          color: #FBF8F3;
-          padding: 60px 0 24px;
+        .site-footer {
+          background-color: #2C1810;
+          color: #E8DFD3;
+          padding-top: 60px;
+          border-top: 1px solid #4A3A2C;
           font-size: 14px;
         }
         .footer-grid {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1.5fr;
           gap: 40px;
-          margin-bottom: 40px;
+          margin-bottom: 48px;
         }
-        .footer-brand img {
-          height: 54px;
+        .footer-logo {
+          height: 48px;
           width: auto;
-          object-fit: contain;
           margin-bottom: 16px;
           background: #FFFFFF;
           padding: 4px 10px;
           border-radius: 6px;
         }
-        .footer-brand p {
+        .footer-brand-title {
+          font-family: var(--font-heading);
+          font-size: 18px;
+          font-weight: 800;
+          color: #FFFFFF;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+        .footer-tagline {
+          font-size: 12px;
+          color: #D4A24E;
+          margin-bottom: 16px;
+          font-weight: 600;
+        }
+        .footer-desc {
           color: #A69686;
           line-height: 1.6;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
           max-width: 320px;
         }
-        .footer-title {
+        .footer-heading {
+          font-family: var(--font-heading);
           font-size: 15px;
-          font-weight: 600;
+          font-weight: 700;
           color: #FFFFFF;
-          margin-bottom: 16px;
-          text-transform: uppercase;
+          margin-bottom: 20px;
           letter-spacing: 0.5px;
+          text-transform: uppercase;
         }
         .footer-links {
+          list-style: none;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
         }
         .footer-links a {
           color: #A69686;
-          transition: color 150ms ease;
+          text-decoration: none;
+          transition: all 150ms ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
         .footer-links a:hover {
           color: #D4A24E;
+          transform: translateX(3px);
         }
         .footer-contact-item {
           display: flex;
           align-items: flex-start;
-          gap: 10px;
+          gap: 12px;
+          margin-bottom: 16px;
           color: #A69686;
-          margin-bottom: 12px;
         }
         .footer-contact-item svg {
           color: #D4A24E;
@@ -65,26 +88,40 @@ export default function Footer() {
           margin-top: 3px;
         }
         .footer-bottom {
-          border-top: 1px solid #4A3A2C;
-          padding-top: 24px;
+          background-color: #1E100A;
+          padding: 24px 0;
+          border-top: 1px solid #3F2A20;
+          font-size: 12px;
+          color: #8B7B6B;
+        }
+        .footer-bottom-flex {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          color: #8B7B6B;
-          font-size: 13px;
+          flex-wrap: wrap;
+          gap: 12px;
         }
-        @media (max-width: 768px) {
+        .trust-pill-group {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .trust-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: rgba(255,255,255,0.06);
+          padding: 4px 10px;
+          border-radius: 4px;
+          color: #E8DFD3;
+          font-size: 11px;
+        }
+        @media (max-width: 900px) {
           .footer-grid {
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-          }
-          .footer-bottom {
-            flex-direction: column;
-            gap: 12px;
-            text-align: center;
           }
         }
-        @media (max-width: 480px) {
+        @media (max-width: 550px) {
           .footer-grid {
             grid-template-columns: 1fr;
           }
@@ -93,78 +130,82 @@ export default function Footer() {
 
       <div className="container">
         <div className="footer-grid">
-          {/* Brand Col */}
-          <div className="footer-brand">
-            <img src="/images/logo.png" alt="Kamala Honey Farm" />
-            <p>
-              Kamala Honey Farm produces pure, unprocessed, naturally harvested honey directly from our bee farms in Tirunelveli, Tamil Nadu.
+          {/* Brand Info */}
+          <div>
+            <img src="/images/logo.png" alt="Honey Bee Farm Logo" className="footer-logo" />
+            <div className="footer-brand-title">HONEY BEE FARM</div>
+            <div className="footer-tagline">100% Pure Natural Apiary Honey</div>
+            <p className="footer-desc">
+              Direct from the lush floral apiaries of Tirunelveli, Tamil Nadu. We produce raw, unpasteurized, natural honey with complete commitment to bee welfare and natural purity.
             </p>
+            <div className="trust-pill-group">
+              <span className="trust-pill"><ShieldCheck size={14} color="#D4A24E" /> 100% Raw & Pure</span>
+              <span className="trust-pill"><Award size={14} color="#D4A24E" /> Tirunelveli Origin</span>
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="footer-title">Quick Links</h4>
-            <div className="footer-links">
-              <Link to="/">Home</Link>
-              <Link to="/shop">Shop Honey</Link>
-              <Link to="/about">About Us</Link>
-              <Link to="/farm">Our Farm</Link>
-              <Link to="/gallery">Gallery</Link>
-              <Link to="/contact">Contact</Link>
-            </div>
+            <div className="footer-heading">Shop Honey</div>
+            <ul className="footer-links">
+              <li><Link to="/shop?category=raw-honey">Raw Honey</Link></li>
+              <li><Link to="/shop?category=comb-honey">Natural Honey Comb</Link></li>
+              <li><Link to="/shop?category=premium-reserve">Premium Reserve</Link></li>
+              <li><Link to="/shop?category=gift-boxes">Honey Gift Boxes</Link></li>
+              <li><Link to="/shop?category=forest-honey">Wild Forest Honey</Link></li>
+            </ul>
           </div>
 
-          {/* Customer Care / Policies */}
+          {/* Farm Exploration */}
           <div>
-            <h4 className="footer-title">Customer Care</h4>
-            <div className="footer-links">
-              <Link to="/account/orders">Track Orders</Link>
-              <Link to="/account/wishlist">Wishlist</Link>
-              <Link to="/login">Account Login</Link>
-              <a href="#shipping">Shipping Policy</a>
-              <a href="#returns">Returns & Refunds</a>
-              <a href="#privacy">Privacy Policy</a>
-            </div>
+            <div className="footer-heading">Our Farm</div>
+            <ul className="footer-links">
+              <li><Link to="/farm">Beekeeping Process</Link></li>
+              <li><Link to="/gallery">Honey Gallery</Link></li>
+              <li><Link to="/about">Our Story & Mission</Link></li>
+              <li><Link to="/contact">Contact Farm</Link></li>
+              <li><Link to="/admin/login">Farm Admin Login</Link></li>
+            </ul>
           </div>
 
           {/* Contact Details */}
           <div>
-            <h4 className="footer-title">Get in Touch</h4>
+            <div className="footer-heading">Farm Contact</div>
             <div className="footer-contact-item">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <span>Kamala Honey Farm, Tirunelveli, Tamil Nadu, India</span>
+              <MapPin size={18} />
+              <span>Honey Bee Farm Apiaries, Tirunelveli, Tamil Nadu, India</span>
             </div>
             <div className="footer-contact-item">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"></path>
-              </svg>
+              <Phone size={18} />
               <span>+91 7708510872</span>
             </div>
             <div className="footer-contact-item">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
+              <InstagramIcon size={18} />
               <a 
-                href="https://www.instagram.com/kamala_honey_farm_tirunelveli" 
+                href="https://www.instagram.com/honey_bee_farm_tirunelveli" 
                 target="_blank" 
-                rel="noreferrer" 
-                style={{ color: '#D4A24E' }}
+                rel="noreferrer"
+                style={{ color: '#D4A24E', textDecoration: 'underline' }}
               >
-                @kamala_honey_farm_tirunelveli
+                @honey_bee_farm_tirunelveli
               </a>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} Kamala Honey Farm. All rights reserved. Natural Honey Farm, Tirunelveli.</div>
-          <div>
-            <Link to="/admin/login" style={{ color: '#8B7B6B' }}>Admin Login</Link>
+      {/* Bottom Copyright & Security */}
+      <div className="footer-bottom">
+        <div className="container">
+          <div className="footer-bottom-flex">
+            <div>
+              © {new Date().getFullYear()} Honey Bee Farm. All Rights Reserved. Pure Natural Honey from Tirunelveli.
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Lock size={12} /> Secure Checkout & Insured Delivery
+              </span>
+            </div>
           </div>
         </div>
       </div>

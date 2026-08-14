@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Users, Eye } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { getCustomers, getOrders } from '../../services/firebaseService';
 
@@ -37,7 +38,7 @@ export default function CustomerList() {
   }, []);
 
   return (
-    <AdminLayout title="Customer Management">
+    <AdminLayout title="Registered Customers">
       <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
         {loading ? (
           <div className="loader"><div className="spinner"></div></div>
@@ -46,17 +47,31 @@ export default function CustomerList() {
         ) : (
           <table className="table">
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Phone</th><th>Total Orders</th><th>Total Spent</th><th>Joined</th></tr>
+              <tr>
+                <th>Customer Name</th>
+                <th>Email Address</th>
+                <th>Phone</th>
+                <th>Total Orders</th>
+                <th>Total Spent</th>
+                <th>Registration Date</th>
+                <th>Action</th>
+              </tr>
             </thead>
             <tbody>
               {customers.map(c => (
                 <tr key={c.id}>
-                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td style={{ fontWeight: 600, color: '#2C1810' }}>{c.name}</td>
                   <td>{c.email}</td>
                   <td>{c.phone || 'N/A'}</td>
-                  <td>{c.order_count}</td>
-                  <td style={{ fontWeight: 600, color: '#C17817' }}>₹{c.total_spent}</td>
+                  <td>{c.order_count} order(s)</td>
+                  <td style={{ fontWeight: 700, color: '#C17817' }}>₹{c.total_spent}</td>
                   <td style={{ fontSize: '12px', color: '#8B7B6B' }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : 'Recent'}</td>
+                  <td>
+                    <Link to={`/admin/customers/${c.id}`} className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                      <Eye size={13} />
+                      <span>Details</span>
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

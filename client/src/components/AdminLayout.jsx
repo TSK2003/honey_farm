@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Menu, ExternalLink } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
 import { useAuth } from '../context/AuthContext';
 
@@ -52,23 +53,33 @@ export default function AdminLayout({ children, title }) {
           font-size: 13px;
           color: #C17817;
           font-weight: 600;
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
+          text-decoration: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          transition: background 150ms ease;
+        }
+        .view-site-link:hover {
+          background: #FFF8ED;
         }
         .mobile-hamburger {
           display: none;
           background: none;
           border: none;
-          font-size: 20px;
           cursor: pointer;
+          color: #2C1810;
+          padding: 4px;
         }
         @media (max-width: 900px) {
           .admin-main {
             margin-left: 0;
           }
           .mobile-hamburger {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
         }
       `}</style>
@@ -83,15 +94,17 @@ export default function AdminLayout({ children, title }) {
             <button 
               className="mobile-hamburger" 
               onClick={() => setMobileOpen(!mobileOpen)}
+              title="Open Navigation"
             >
-              ☰
+              <Menu size={20} />
             </button>
             <h1 className="admin-page-title">{title || 'Dashboard'}</h1>
           </div>
 
           <div className="topbar-right">
             <Link to="/" target="_blank" className="view-site-link">
-              🌐 View Store ↗
+              <span>View Customer Store</span>
+              <ExternalLink size={14} />
             </Link>
           </div>
         </header>

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Star, Check, EyeOff } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getAllAdminReviews, updateReviewStatus } from '../../services/firebaseService';
 
 export default function ReviewList() {
-  const { getAdminToken } = useAuth();
   const { addToast } = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,11 +15,8 @@ export default function ReviewList() {
 
   async function fetchReviews() {
     try {
-      const res = await fetch('/api/reviews/admin/all', {
-        headers: { 'Authorization': `Bearer ${getAdminToken()}` }
-      });
-      const data = await res.json();
-      if (data.reviews) setReviews(data.reviews);
+      const data = await getAllAdminReviews();
+      if (Array.isArray(data)) setReviews(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -29,20 +26,11 @@ export default function ReviewList() {
 
   const handleUpdateStatus = async (id, status) => {
     try {
-      const res = await fetch(`/api/reviews/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAdminToken()}`
-        },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        addToast(`Review ${status}`, 'success');
-        fetchReviews();
-      }
+      await updateReviewStatus(id, status);
+      addToast(`Review marked as ${status} in Firestore`, 'success');
+      fetchReviews();
     } catch (err) {
-      addToast('Error updating review', 'error');
+      addToast('Error updating review status', 'error');
     }
   };
 
@@ -54,28 +42,54 @@ export default function ReviewList() {
         <div className="table-container" style={{ background: 'white' }}>
           <table className="table">
             <thead>
-              <tr><th>Product</th><th>Customer</th><th>Rating</th><th>Comment</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Honey Product</th><th>Customer</th><th>Rating</th><th>Review Comment</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {reviews.map(r => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: 600 }}>{r.product_name}</td>
+                  <td style={{ fontWeight: 600 }}>{r.product_name || 'Pure Natural Honey'}</td>
                   <td>{r.customer_name}</td>
-                  <td style={{ color: '#D4A24E' }}>★ {r.rating}/5</td>
-                  <td style={{ fontSize: '13px' }}>"{r.comment}"</td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#D4A24E' }}>
+                      <Star size={13} fill="#D4A24E" color="#D4A24E" />
+                      <span>{r.rating}/5</span>
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '13px', maxWidth: '300px' }}>"{r.comment}"</td>
                   <td>
                     <span className={`badge badge-${r.status === 'approved' ? 'success' : r.status === 'pending' ? 'warning' : 'danger'}`}>
                       {r.status?.toUpperCase()}
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {r.status !== 'approved' && <button onClick={() => handleUpdateStatus(r.id, 'approved')} className="btn btn-sm btn-primary">Approve</button>}
-                      {r.status !== 'hidden' && <button onClick={() => handleUpdateStatus(r.id, 'hidden')} className="btn btn-sm btn-ghost">Hide</button>}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {r.status !== 'approved' && (
+                        <button 
+                          onClick={() => handleUpdateStatus(r.id, 'approved')} 
+                          className="btn btn-sm btn-primary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Check size={12} />
+                          <span>Approve</span>
+                        </button>
+                      )}
+                      {r.status !== 'hidden' && (
+                        <button 
+                          onClick={() => handleUpdateStatus(r.id, 'hidden')} 
+                          className="btn btn-sm btn-outline"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <EyeOff size={12} />
+                          <span>Hide</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
+              {reviews.length === 0 && (
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#8B7B6B' }}>No customer reviews found</td></tr>
+              )}
             </tbody>
           </table>
         </div>

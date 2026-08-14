@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Plus, Trash2, Tag } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useToast } from '../../context/ToastContext';
 import { getCategories, saveCategory, deleteCategory } from '../../services/firebaseService';
@@ -31,7 +32,7 @@ export default function CategoryList() {
     const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     try {
       await saveCategory({ ...newCategory, slug });
-      addToast('Category created successfully!', 'success');
+      addToast('Category created successfully in Firestore!', 'success');
       setNewCategory({ name: '', slug: '', description: '' });
       fetchCategories();
     } catch (err) {
@@ -43,7 +44,7 @@ export default function CategoryList() {
     if (!window.confirm('Delete category? Products in this category will remain unaffected.')) return;
     try {
       await deleteCategory(id);
-      addToast('Category deleted', 'success');
+      addToast('Category deleted from Firestore', 'success');
       fetchCategories();
     } catch (err) {
       addToast('Error deleting category', 'error');
@@ -51,11 +52,14 @@ export default function CategoryList() {
   };
 
   return (
-    <AdminLayout title="Category Management">
+    <AdminLayout title="Honey Categories">
       <div className="grid grid-2" style={{ gap: '32px' }}>
         {/* Create form */}
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Add Honey Category</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={18} color="#C17817" />
+            <span>Add Honey Category</span>
+          </h3>
           <form onSubmit={handleCreate}>
             <div className="form-group">
               <label className="form-label">Category Name *</label>
@@ -64,6 +68,7 @@ export default function CategoryList() {
                 className="form-input"
                 value={newCategory.name}
                 onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                placeholder="e.g. Raw Honey"
                 required
               />
             </div>
@@ -86,16 +91,23 @@ export default function CategoryList() {
                 rows="3"
                 value={newCategory.description}
                 onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                placeholder="Brief description of this honey category"
               ></textarea>
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>ADD CATEGORY</button>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Plus size={16} />
+              <span>ADD CATEGORY</span>
+            </button>
           </form>
         </div>
 
         {/* List */}
         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '6px', border: '1px solid #E5E0D8' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Existing Categories ({categories.length})</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Tag size={18} color="#C17817" />
+            <span>Existing Categories ({categories.length})</span>
+          </h3>
 
           {loading ? (
             <div className="loader"><div className="spinner"></div></div>
@@ -105,7 +117,7 @@ export default function CategoryList() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>Category Name</th>
                   <th>Slug</th>
                   <th>Actions</th>
                 </tr>
@@ -118,9 +130,11 @@ export default function CategoryList() {
                     <td>
                       <button
                         onClick={() => handleDelete(c.id)}
-                        style={{ color: '#C44B3F', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: '#C44B3F', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '12px' }}
                       >
-                        Delete
+                        <Trash2 size={13} />
+                        <span>Delete</span>
                       </button>
                     </td>
                   </tr>

@@ -1,5 +1,27 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Package, 
+  Tag, 
+  Factory, 
+  ShoppingBag, 
+  Users, 
+  Ticket, 
+  Star, 
+  Image, 
+  Camera, 
+  Sparkles, 
+  FileText, 
+  Mail, 
+  BarChart3, 
+  Settings, 
+  ShoppingCart, 
+  Truck, 
+  CreditCard, 
+  User, 
+  LogOut 
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
@@ -49,15 +71,17 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           border-radius: 4px;
         }
         .sidebar-title {
+          font-family: var(--font-heading);
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 800;
           color: #FFFFFF;
           line-height: 1.2;
         }
         .sidebar-subtitle {
-          font-size: 11px;
+          font-size: 10px;
+          font-weight: 700;
           color: #D4A24E;
-          letter-spacing: 0.5px;
+          letter-spacing: 1px;
         }
         .sidebar-nav {
           padding: 16px 12px;
@@ -90,6 +114,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           color: #A69686;
           border-radius: 5px;
           transition: all 150ms ease;
+          text-decoration: none;
         }
         .sidebar-link:hover {
           background: rgba(212, 162, 78, 0.1);
@@ -124,9 +149,9 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
 
       {/* Header */}
       <div className="sidebar-header">
-        <img src="/images/logo.png" alt="Kamala Admin" />
+        <img src="/images/logo.png" alt="Honey Bee Farm Admin" />
         <div>
-          <div className="sidebar-title">KAMALA</div>
+          <div className="sidebar-title">HONEY BEE FARM</div>
           <div className="sidebar-subtitle">ADMIN PANEL</div>
         </div>
       </div>
@@ -137,7 +162,8 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
         <div>
           <div className="sidebar-menu">
             <Link to="/admin" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin') ? 'active' : ''}`}>
-              📊 Dashboard
+              <LayoutDashboard size={17} />
+              <span>Dashboard</span>
             </Link>
           </div>
         </div>
@@ -147,32 +173,39 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <div className="nav-section-label">Catalog</div>
           <div className="sidebar-menu">
             <Link to="/admin/products" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isParentActive('/admin/products') ? 'active' : ''}`}>
-              📦 Products
+              <Package size={17} />
+              <span>Products</span>
             </Link>
             <Link to="/admin/categories" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/categories') ? 'active' : ''}`}>
-              🏷️ Categories
+              <Tag size={17} />
+              <span>Categories</span>
             </Link>
             <Link to="/admin/inventory" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/inventory') ? 'active' : ''}`}>
-              🏭 Inventory
+              <Factory size={17} />
+              <span>Inventory</span>
             </Link>
           </div>
         </div>
 
         {/* Sales */}
         <div>
-          <div className="nav-section-label">Sales</div>
+          <div className="nav-section-label">Sales & Orders</div>
           <div className="sidebar-menu">
             <Link to="/admin/orders" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isParentActive('/admin/orders') ? 'active' : ''}`}>
-              🛍️ Orders
+              <ShoppingBag size={17} />
+              <span>Orders</span>
             </Link>
             <Link to="/admin/customers" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isParentActive('/admin/customers') ? 'active' : ''}`}>
-              👥 Customers
+              <Users size={17} />
+              <span>Customers</span>
             </Link>
             <Link to="/admin/coupons" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/coupons') ? 'active' : ''}`}>
-              🎟️ Coupons
+              <Ticket size={17} />
+              <span>Coupons</span>
             </Link>
             <Link to="/admin/reviews" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/reviews') ? 'active' : ''}`}>
-              ⭐ Reviews
+              <Star size={17} />
+              <span>Reviews</span>
             </Link>
           </div>
         </div>
@@ -182,16 +215,20 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <div className="nav-section-label">Content</div>
           <div className="sidebar-menu">
             <Link to="/admin/banners" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/banners') ? 'active' : ''}`}>
-              🖼️ Banners
+              <Image size={17} />
+              <span>Banners</span>
             </Link>
             <Link to="/admin/gallery" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/gallery') ? 'active' : ''}`}>
-              📸 Gallery
+              <Camera size={17} />
+              <span>Gallery</span>
             </Link>
             <Link to="/admin/content/farm" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/content/farm') ? 'active' : ''}`}>
-              🐝 Farm Story
+              <Sparkles size={17} />
+              <span>Farm Story</span>
             </Link>
             <Link to="/admin/content" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/content') ? 'active' : ''}`}>
-              📝 Website Content
+              <FileText size={17} />
+              <span>Website Content</span>
             </Link>
           </div>
         </div>
@@ -201,7 +238,8 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <div className="nav-section-label">Communication</div>
           <div className="sidebar-menu">
             <Link to="/admin/messages" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/messages') ? 'active' : ''}`}>
-              ✉️ Messages
+              <Mail size={17} />
+              <span>Messages</span>
             </Link>
           </div>
         </div>
@@ -211,7 +249,8 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <div className="nav-section-label">Reports</div>
           <div className="sidebar-menu">
             <Link to="/admin/reports" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/reports') ? 'active' : ''}`}>
-              📈 Business Reports
+              <BarChart3 size={17} />
+              <span>Analytics & Reports</span>
             </Link>
           </div>
         </div>
@@ -221,19 +260,24 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <div className="nav-section-label">Settings</div>
           <div className="sidebar-menu">
             <Link to="/admin/settings/business" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/settings/business') ? 'active' : ''}`}>
-              ⚙️ Business Info
+              <Settings size={17} />
+              <span>Business Info</span>
             </Link>
             <Link to="/admin/settings/ecommerce" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/settings/ecommerce') ? 'active' : ''}`}>
-              🛒 Ecommerce
+              <ShoppingCart size={17} />
+              <span>Ecommerce</span>
             </Link>
             <Link to="/admin/settings/shipping" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/settings/shipping') ? 'active' : ''}`}>
-              🚚 Shipping
+              <Truck size={17} />
+              <span>Shipping</span>
             </Link>
             <Link to="/admin/settings/payment" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/settings/payment') ? 'active' : ''}`}>
-              💳 Payment
+              <CreditCard size={17} />
+              <span>Payment</span>
             </Link>
             <Link to="/admin/profile" onClick={() => setMobileOpen(false)} className={`sidebar-link ${isActive('/admin/profile') ? 'active' : ''}`}>
-              👤 Admin Profile
+              <User size={17} />
+              <span>Admin Profile</span>
             </Link>
           </div>
         </div>
@@ -242,11 +286,11 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }) {
       {/* Footer / User Profile */}
       <div className="sidebar-footer">
         <div className="user-info">
-          <div className="user-name">{admin?.name || 'Admin'}</div>
+          <div className="user-name">{admin?.name || 'Honey Bee Admin'}</div>
           <div className="user-role">Super Admin</div>
         </div>
-        <button onClick={handleLogout} className="btn btn-sm btn-ghost" style={{ color: '#E44E4E' }} title="Logout">
-          🚪
+        <button onClick={handleLogout} className="btn btn-sm btn-ghost" style={{ color: '#E44E4E', padding: '6px' }} title="Logout">
+          <LogOut size={16} />
         </button>
       </div>
     </aside>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { Truck, ShieldCheck, CheckCircle2, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -57,6 +58,7 @@ export default function CheckoutPage() {
         subtotal: cartSubtotal,
         shipping_charge: shippingCharge,
         total: grandTotal,
+        payment_method: paymentMethod,
         notes: formData.notes
       });
 
@@ -71,7 +73,15 @@ export default function CheckoutPage() {
   };
 
   if (cart.length === 0) {
-    return <div className="container section"><div className="empty-state"><h3>Your cart is empty</h3></div></div>;
+    return (
+      <div className="container section">
+        <div className="empty-state" style={{ background: '#FFFFFF', border: '1px solid #E5E0D8', borderRadius: '8px', padding: '48px 24px', textAlign: 'center' }}>
+          <h3>Your cart is empty</h3>
+          <p style={{ color: '#5C4A3A', margin: '8px 0 20px' }}>Add natural honey products before checking out.</p>
+          <Link to="/shop" className="btn btn-primary">Return to Shop</Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -96,6 +106,9 @@ export default function CheckoutPage() {
           margin-bottom: 16px;
           border-bottom: 1px solid #E5E0D8;
           padding-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
         .payment-option {
           border: 1px solid #E5E0D8;
@@ -106,6 +119,7 @@ export default function CheckoutPage() {
           align-items: center;
           gap: 12px;
           cursor: pointer;
+          transition: all 150ms ease;
         }
         .payment-option.active {
           border-color: #C17817;
@@ -117,7 +131,7 @@ export default function CheckoutPage() {
       `}</style>
 
       <div className="container">
-        <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '24px' }}>Checkout</h2>
+        <h2 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '24px' }}>Checkout Order</h2>
 
         <form onSubmit={handleSubmitOrder}>
           <div className="checkout-layout">
@@ -125,7 +139,10 @@ export default function CheckoutPage() {
             <div>
               {/* Shipping Details */}
               <div className="checkout-form-box">
-                <div className="form-section-title">Shipping Address</div>
+                <div className="form-section-title">
+                  <Truck size={18} />
+                  <span>Delivery Address</span>
+                </div>
 
                 <div className="form-row">
                   <div className="form-group">
@@ -173,7 +190,10 @@ export default function CheckoutPage() {
 
               {/* Payment Method */}
               <div className="checkout-form-box">
-                <div className="form-section-title">Payment Method</div>
+                <div className="form-section-title">
+                  <ShieldCheck size={18} />
+                  <span>Payment Method</span>
+                </div>
 
                 <div 
                   className={`payment-option ${paymentMethod === 'COD' ? 'active' : ''}`}
@@ -182,15 +202,15 @@ export default function CheckoutPage() {
                   <input type="radio" checked={paymentMethod === 'COD'} onChange={() => {}} />
                   <div>
                     <div style={{ fontWeight: 600 }}>Cash on Delivery (COD)</div>
-                    <div style={{ fontSize: '12px', color: '#5C4A3A' }}>Pay cash when your natural honey is delivered</div>
+                    <div style={{ fontSize: '12px', color: '#5C4A3A' }}>Pay cash when your natural honey is safely delivered</div>
                   </div>
                 </div>
 
                 <div className="payment-option" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
                   <input type="radio" disabled />
                   <div>
-                    <div style={{ fontWeight: 600 }}>Online Payment (UPI, Cards, NetBanking)</div>
-                    <div style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>Coming Soon</div>
+                    <div style={{ fontWeight: 600 }}>Online Payment (UPI / Cards / NetBanking)</div>
+                    <div style={{ fontSize: '12px', color: '#C17817', fontWeight: 600 }}>Online Gateway Coming Soon</div>
                   </div>
                 </div>
               </div>
@@ -199,13 +219,16 @@ export default function CheckoutPage() {
             {/* Right: Summary */}
             <div>
               <div className="checkout-form-box">
-                <div className="form-section-title">Your Honey Order</div>
+                <div className="form-section-title">
+                  <ShoppingBag size={18} />
+                  <span>Your Honey Order</span>
+                </div>
 
-                <div style={{ marginBottom: '16px', maxHeight: '200px', overflowY: 'auto' }}>
+                <div style={{ marginBottom: '16px', maxHeight: '220px', overflowY: 'auto' }}>
                   {cart.map(item => (
                     <div key={item.variant_id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
                       <span>{item.name} ({item.weight}) × {item.quantity}</span>
-                      <span>₹{item.price * item.quantity}</span>
+                      <span style={{ fontWeight: 600 }}>₹{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -216,7 +239,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="summary-row">
                   <span>Shipping</span>
-                  <span>{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
+                  <span>{shippingCharge === 0 ? <strong style={{ color: '#4A7C59' }}>FREE</strong> : `₹${shippingCharge}`}</span>
                 </div>
 
                 <div className="summary-row" style={{ borderTop: '1px solid #E5E0D8', paddingTop: '12px', fontSize: '18px', fontWeight: 700 }}>
@@ -228,10 +251,11 @@ export default function CheckoutPage() {
                   <button 
                     type="submit" 
                     className="btn btn-primary btn-lg" 
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                     disabled={submitting}
                   >
-                    {submitting ? 'Placing Order...' : 'PLACE ORDER NOW'}
+                    <span>{submitting ? 'Placing Order...' : 'PLACE ORDER NOW'}</span>
+                    <ArrowRight size={18} />
                   </button>
                 </div>
               </div>
