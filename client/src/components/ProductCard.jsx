@@ -100,10 +100,15 @@ export default function ProductCard({ product }) {
           <span className="count">({product.review_count || 3})</span>
         </div>
 
-        <div className="product-card-price">
-          <span className="price">₹{primaryVariant.price}</span>
+        {/* Clear, formatted selling price vs strike-through MRP */}
+        <div className="product-card-price" style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '8px 0' }}>
+          <span className="price" style={{ fontSize: '18px', fontWeight: 800, color: '#2C1810' }}>
+            ₹{primaryVariant.price}
+          </span>
           {primaryVariant.mrp > primaryVariant.price && (
-            <span className="mrp">₹{primaryVariant.mrp}</span>
+            <span className="mrp" style={{ fontSize: '13px', color: '#8E7E70', textDecoration: 'line-through', fontWeight: 400 }}>
+              ₹{primaryVariant.mrp}
+            </span>
           )}
         </div>
 

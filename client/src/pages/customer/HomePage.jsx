@@ -2,42 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
-  Home, 
   ShieldCheck, 
   MapPin, 
   Award, 
   ArrowRight, 
-  Star, 
-  Package, 
-  Truck, 
-  CheckCircle2,
-  Tag,
-  Heart
+  Star
 } from 'lucide-react';
 import { InstagramIcon } from '../../components/Icons';
 import ProductCard from '../../components/ProductCard';
-import { getProducts, getCategories } from '../../services/firebaseService';
+import { getProducts } from '../../services/firebaseService';
 
 export default function HomePage() {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [prods, cats] = await Promise.all([
-          getProducts(),
-          getCategories()
-        ]);
-
+        const prods = await getProducts();
         if (prods && prods.length > 0) {
           setProducts(prods);
-        }
-        if (cats && cats.length > 0) {
-          // Keep top 5 prominent categories
-          setCategories(cats.slice(0, 5));
         }
 
         setReviews([
@@ -80,8 +65,8 @@ export default function HomePage() {
       <style>{`
         /* ================= HERO SECTION ================= */
         .hero-section {
-          background: radial-gradient(circle at 80% 20%, rgba(212, 162, 78, 0.14) 0%, rgba(255, 248, 237, 0.9) 45%, #FBF8F3 100%);
-          padding: 64px 0 80px;
+          background: radial-gradient(circle at 80% 20%, rgba(212, 162, 78, 0.12) 0%, rgba(255, 248, 237, 0.8) 45%, #FBF8F3 100%);
+          padding: 64px 0 72px;
           border-bottom: 1px solid #E8DFD3;
           position: relative;
           overflow: hidden;
@@ -108,7 +93,7 @@ export default function HomePage() {
         }
         .hero-heading {
           font-family: var(--font-heading);
-          font-size: 52px;
+          font-size: 50px;
           font-weight: 800;
           color: #2C1810;
           line-height: 1.12;
@@ -121,7 +106,7 @@ export default function HomePage() {
           -webkit-text-fill-color: transparent;
         }
         .hero-subtext {
-          font-size: 16.5px;
+          font-size: 16px;
           color: #5C4A3A;
           line-height: 1.65;
           margin-bottom: 32px;
@@ -190,104 +175,6 @@ export default function HomePage() {
         .floating-card-2 {
           top: 20px;
           right: -10px;
-        }
-
-        /* ================= TRUST STRIP ================= */
-        .trust-strip {
-          background: #2C1810;
-          color: #FFFFFF;
-          padding: 28px 0;
-        }
-        .trust-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-        }
-        .trust-item {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .trust-icon-box {
-          width: 46px;
-          height: 46px;
-          border-radius: 10px;
-          background: rgba(193, 120, 23, 0.2);
-          color: #D4A24E;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          border: 1px solid rgba(212, 162, 78, 0.3);
-        }
-        .trust-title {
-          font-family: var(--font-heading);
-          font-size: 14.5px;
-          font-weight: 700;
-          color: #FFFFFF;
-          margin-bottom: 2px;
-        }
-        .trust-sub {
-          font-size: 12px;
-          color: #A69686;
-        }
-
-        /* ================= CATEGORIES ROUND GRID ================= */
-        .category-showcase-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 20px;
-        }
-        .cat-card-modern {
-          background: #FFFFFF;
-          border: 1px solid #E8DFD3;
-          border-radius: 12px;
-          padding: 20px 14px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-decoration: none;
-          transition: all 250ms ease;
-          box-shadow: 0 2px 8px rgba(44, 24, 16, 0.04);
-        }
-        .cat-card-modern:hover {
-          border-color: #C17817;
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(193, 120, 23, 0.15);
-        }
-        .cat-img-wrapper {
-          width: 90px;
-          height: 90px;
-          border-radius: 50%;
-          overflow: hidden;
-          background: #FBF8F3;
-          margin-bottom: 14px;
-          border: 2px solid #F0D48A;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .cat-img-wrapper img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform 200ms ease;
-        }
-        .cat-card-modern:hover .cat-img-wrapper img {
-          transform: scale(1.08);
-        }
-        .cat-title-modern {
-          font-family: var(--font-heading);
-          font-size: 14px;
-          font-weight: 700;
-          color: #2C1810;
-          margin-bottom: 4px;
-        }
-        .cat-count-sub {
-          font-size: 11.5px;
-          color: #C17817;
-          font-weight: 600;
         }
 
         /* ================= WHY CHOOSE ================= */
@@ -400,21 +287,19 @@ export default function HomePage() {
           background-size: cover;
           background-position: center;
           color: #FFFFFF;
-          padding: 80px 0;
+          padding: 72px 0;
           text-align: center;
         }
 
         @media (max-width: 950px) {
           .hero-grid, .farm-story-layout { grid-template-columns: 1fr; }
-          .hero-heading { font-size: 40px; }
-          .trust-grid, .why-grid { grid-template-columns: repeat(2, 1fr); }
-          .category-showcase-grid { grid-template-columns: repeat(3, 1fr); }
+          .hero-heading { font-size: 38px; }
+          .why-grid { grid-template-columns: repeat(2, 1fr); }
           .testimonials-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 550px) {
-          .trust-grid, .category-showcase-grid { grid-template-columns: 1fr; }
-          .hero-heading { font-size: 32px; }
+          .hero-heading { font-size: 30px; }
         }
       `}</style>
 
@@ -487,76 +372,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. TRUST / VALUE STRIP */}
-      <section className="trust-strip">
-        <div className="container">
-          <div className="trust-grid">
-            <div className="trust-item">
-              <div className="trust-icon-box"><Sparkles size={22} /></div>
-              <div>
-                <div className="trust-title">Naturally Sourced</div>
-                <div className="trust-sub">100% Raw & Unprocessed</div>
-              </div>
-            </div>
-            <div className="trust-item">
-              <div className="trust-icon-box"><Home size={22} /></div>
-              <div>
-                <div className="trust-title">Farm Direct Apiary</div>
-                <div className="trust-sub">Straight from Beehive to Jar</div>
-              </div>
-            </div>
-            <div className="trust-item">
-              <div className="trust-icon-box"><ShieldCheck size={22} /></div>
-              <div>
-                <div className="trust-title">Strict Purity Testing</div>
-                <div className="trust-sub">Enzyme & Pollen Rich</div>
-              </div>
-            </div>
-            <div className="trust-item">
-              <div className="trust-icon-box"><Truck size={22} /></div>
-              <div>
-                <div className="trust-title">Fast Insured Delivery</div>
-                <div className="trust-sub">Free Delivery Over ₹500</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. EXPLORE CATEGORIES (Clean 5-Item Showcase) */}
-      <section className="section section-bg">
-        <div className="container">
-          <div className="section-header" style={{ marginBottom: '36px' }}>
-            <span className="section-label">CURATED COLLECTIONS</span>
-            <h2>Explore Honey Varieties</h2>
-            <p>Hand-harvested pure honey and traditional honey-infused wellness products.</p>
-          </div>
-
-          <div className="category-showcase-grid">
-            {categories.map((cat) => {
-              const imageMap = {
-                'dry-fruits-honey': '/images/product-honey-dry-fruits.png',
-                'kattu-nellikai-honey': '/images/product-honey-kattu-nellikai.png',
-                'dates-honey': '/images/product-honey-dates.png',
-                'raw-honey': '/images/product-natural-honey.png',
-                'comb-honey': '/images/product-honeycomb.png'
-              };
-              const catImg = imageMap[cat.slug] || '/images/product-natural-honey.png';
-              return (
-                <Link to={`/shop?category=${cat.slug}`} key={cat.id} className="cat-card-modern">
-                  <div className="cat-img-wrapper">
-                    <img src={catImg} alt={cat.name} />
-                  </div>
-                  <div className="cat-title-modern">{cat.name}</div>
-                  <div className="cat-count-sub">View Products →</div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. ALL NATURAL HONEY PRODUCTS */}
+      {/* 2. ALL NATURAL HONEY PRODUCTS */}
       <section className="section">
         <div className="container">
           <div className="section-header">
@@ -573,7 +389,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. WHY CHOOSE HONEY BEE FARM */}
+      {/* 3. WHY CHOOSE HONEY BEE FARM */}
       <section className="section section-bg">
         <div className="container">
           <div className="section-header">
@@ -607,7 +423,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. APIARY STORY */}
+      {/* 4. APIARY STORY */}
       <section className="section">
         <div className="container">
           <div className="farm-story-layout">
@@ -639,7 +455,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. VERIFIED CUSTOMER REVIEWS */}
+      {/* 5. VERIFIED CUSTOMER REVIEWS */}
       <section className="section section-bg">
         <div className="container">
           <div className="section-header">
@@ -672,7 +488,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 8. INSTAGRAM SOCIAL */}
+      {/* 6. INSTAGRAM SOCIAL */}
       <section className="section" style={{ textAlign: 'center' }}>
         <div className="container">
           <span className="section-label">FOLLOW OUR JOURNEY</span>
@@ -692,7 +508,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 9. FINAL CALL TO ACTION */}
+      {/* 7. FINAL CALL TO ACTION */}
       <section className="final-cta-section">
         <div className="container">
           <h2 style={{ fontSize: '36px', color: '#FFFFFF', marginBottom: '16px' }}>
