@@ -555,6 +555,7 @@ export async function deleteCategory(id) {
 // ==========================================
 // 3. ORDERS & TRACKING ROADMAP
 // ==========================================
+
 export async function getOrders(statusFilter = 'all') {
   try {
     let orders = [];
@@ -563,7 +564,9 @@ export async function getOrders(statusFilter = 'all') {
       if (!snap.empty) {
         snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Firestore orders fetch error:', e);
+    }
 
     if (orders.length === 0) {
       orders = getLocalItem('orders', DEFAULT_ORDERS);
@@ -589,7 +592,7 @@ export async function getOrderById(id) {
       }
     } catch (e) {}
 
-    const local = getLocalItem('orders', DEFAULT_ORDERS);
+    const local = await getOrders('all');
     return local.find(o => o.id === id || o.order_number === id) || null;
   } catch (err) {
     return null;
@@ -626,7 +629,24 @@ export async function createOrder(orderPayload) {
 
   try {
     await setDoc(doc(db, 'orders', id), newOrder);
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Firestore create order warning:', e);
+  }
+
+  // Also auto-upsert customer record into Firestore 'customers' collection
+  if (orderPayload.shipping?.phone || orderPayload.shipping?.email) {
+    const custId = `cust-${orderPayload.shipping.phone || Date.now()}`;
+    const custData = {
+      id: custId,
+      name: orderPayload.shipping.name || 'Customer',
+      email: (orderPayload.shipping.email || `${orderPayload.shipping.phone}@honeybeefarm.com`).toLowerCase(),
+      phone: orderPayload.shipping.phone || '',
+      updated_at: new Date().toISOString()
+    };
+    try {
+      await setDoc(doc(db, 'customers', custId), custData, { merge: true });
+    } catch (e) {}
+  }
 
   local.unshift(newOrder);
   setLocalItem('orders', local);
@@ -660,7 +680,12 @@ export async function updateOrderStage(orderId, newStageKey) {
 
   try {
     await updateDoc(doc(db, 'orders', order.id), { order_status: newStageKey, updated_at: order.updated_at });
-  } catch (e) {}
+  } catch (e) {
+    // fallback if doc id differs
+    try {
+      await setDoc(doc(db, 'orders', order.id), order, { merge: true });
+    } catch (err2) {}
+  }
 
   setLocalItem('orders', local);
   return order;
@@ -832,7 +857,11 @@ export async function updateMessageStatus(id, status) {
     item.status = status;
     try {
       await updateDoc(doc(db, 'messages', id), { status });
-    } catch (e) {}
+    } catch (e) {
+      try {
+        await setDoc(doc(db, 'messages', id), item, { merge: true });
+      } catch (e2) {}
+    }
     setLocalItem('messages', local);
   }
   return { success: true };
@@ -847,6 +876,16 @@ export async function getAllAdminReviews() {
     { id: 'rev-2', customer_name: 'Priya Ramesh', product_name: 'Wild Kattu Nellikai in Raw Honey', rating: 5, comment: 'Authentic wild gooseberries cured in pure honey. Excellent natural immunity booster for cold and cough.', status: 'approved' },
     { id: 'rev-3', customer_name: 'Karthik S.', product_name: 'Honey Soaked Arabian Dates', rating: 5, comment: 'Soft juicy dates in thick golden honey. Replaced all artificial sweets with this jar!', status: 'approved' }
   ];
+
+  try {
+    const snap = await getDocs(collection(db, 'reviews'));
+    if (!snap.empty) {
+      let list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      return list;
+    }
+  } catch (e) {}
+
   return getLocalItem('reviews', defaultReviews);
 }
 
@@ -855,6 +894,9 @@ export async function updateReviewStatus(id, status) {
   const r = local.find(item => item.id === id);
   if (r) {
     r.status = status;
+    try {
+      await setDoc(doc(db, 'reviews', id), r, { merge: true });
+    } catch (e) {}
     setLocalItem('reviews', local);
   }
   return { success: true };
@@ -867,14 +909,42 @@ export async function getBanners() {
   const defaultBanners = [
     { id: 'ban-1', title: '100% Pure Raw Honey & Dry Fruits Honey', subtitle: 'Harvested directly from our Tirunelveli apiaries', image: '/images/product-honey-dry-fruits.png' }
   ];
+
+  try {
+    const snap = await getDocs(collection(db, 'banners'));
+    if (!snap.empty) {
+      let list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      return list;
+    }
+  } catch (e) {}
+
   return getLocalItem('banners', defaultBanners);
 }
 
 export async function saveBanner(banner) {
   const local = await getBanners();
-  const id = `ban-${Date.now()}`;
-  local.unshift({ ...banner, id });
+  const id = banner.id || `ban-${Date.now()}`;
+  const record = { ...banner, id, updated_at: new Date().toISOString() };
+
+  try {
+    await setDoc(doc(db, 'banners', id), record, { merge: true });
+  } catch (e) {}
+
+  const idx = local.findIndex(b => b.id === id);
+  if (idx >= 0) local[idx] = record;
+  else local.unshift(record);
+
   setLocalItem('banners', local);
+  return record;
+}
+
+export async function deleteBanner(id) {
+  try {
+    await deleteDoc(doc(db, 'banners', id));
+  } catch (e) {}
+  const local = await getBanners();
+  setLocalItem('banners', local.filter(b => b.id !== id));
   return { success: true };
 }
 
@@ -887,14 +957,42 @@ export async function getGalleryImages() {
     { id: 'gal-5', title: 'Fresh Natural Honeycomb', image: '/images/showcase-honeycomb.png' },
     { id: 'gal-6', title: 'Healthy Bee Colonies', image: '/images/showcase-bees.png' }
   ];
+
+  try {
+    const snap = await getDocs(collection(db, 'gallery'));
+    if (!snap.empty) {
+      let list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      return list;
+    }
+  } catch (e) {}
+
   return getLocalItem('gallery', defaultGallery);
 }
 
 export async function saveGalleryItem(item) {
   const local = await getGalleryImages();
-  const id = `gal-${Date.now()}`;
-  local.unshift({ ...item, id });
+  const id = item.id || `gal-${Date.now()}`;
+  const record = { ...item, id, updated_at: new Date().toISOString() };
+
+  try {
+    await setDoc(doc(db, 'gallery', id), record, { merge: true });
+  } catch (e) {}
+
+  const idx = local.findIndex(g => g.id === id);
+  if (idx >= 0) local[idx] = record;
+  else local.unshift(record);
+
   setLocalItem('gallery', local);
+  return record;
+}
+
+export async function deleteGalleryItem(id) {
+  try {
+    await deleteDoc(doc(db, 'gallery', id));
+  } catch (e) {}
+  const local = await getGalleryImages();
+  setLocalItem('gallery', local.filter(g => g.id !== id));
   return { success: true };
 }
 
@@ -902,19 +1000,54 @@ export async function saveGalleryItem(item) {
 // 9. WEBSITE CONTENT & SETTINGS
 // ==========================================
 export async function getSettings() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'general'));
+    if (snap.exists()) {
+      return { ...DEFAULT_SETTINGS, ...snap.data() };
+    }
+  } catch (e) {}
+
   return getLocalItem('settings', DEFAULT_SETTINGS);
 }
 
 export async function saveSettings(settings) {
-  setLocalItem('settings', { ...DEFAULT_SETTINGS, ...settings });
+  const updated = { ...DEFAULT_SETTINGS, ...settings, updated_at: new Date().toISOString() };
+  try {
+    await setDoc(doc(db, 'settings', 'general'), updated, { merge: true });
+  } catch (e) {}
+  setLocalItem('settings', updated);
   return { success: true };
 }
 
 export async function getWebsiteContent() {
+  try {
+    const [homeSnap, farmSnap] = await Promise.all([
+      getDoc(doc(db, 'content', 'homepage')),
+      getDoc(doc(db, 'content', 'farm'))
+    ]);
+    let res = { ...DEFAULT_CONTENT };
+    if (homeSnap.exists()) {
+      res = { ...res, ...homeSnap.data() };
+    }
+    if (farmSnap.exists()) {
+      res.farm_story = farmSnap.data();
+    }
+    if (homeSnap.exists() || farmSnap.exists()) {
+      return res;
+    }
+  } catch (e) {}
+
   return getLocalItem('content', DEFAULT_CONTENT);
 }
 
-export async function saveWebsiteContent(content) {
+export async function saveWebsiteContent(content, type = 'homepage') {
+  try {
+    if (type === 'farm' || content.farm_story) {
+      await setDoc(doc(db, 'content', 'farm'), content.farm_story || content, { merge: true });
+    }
+    await setDoc(doc(db, 'content', 'homepage'), content, { merge: true });
+  } catch (e) {}
+
   setLocalItem('content', { ...DEFAULT_CONTENT, ...content });
   return { success: true };
 }
@@ -975,23 +1108,137 @@ export async function getAnalyticsReports() {
 }
 
 // ==========================================
-// 11. AUTHENTICATION (CUSTOMER & ADMIN)
+// 11. AUTHENTICATION & REAL-TIME CUSTOMER DIRECTORY
 // ==========================================
 export async function getCustomers() {
   const defaultCustomers = [
     { id: 'cust-1', name: 'Senthil Kumar', email: 'senthil@example.com', phone: '9876543210', created_at: new Date(Date.now() - 86400000 * 10).toISOString() },
     { id: 'cust-2', name: 'Priya Ramesh', email: 'priya@example.com', phone: '9840123456', created_at: new Date(Date.now() - 86400000 * 5).toISOString() }
   ];
-  return getLocalItem('customers', defaultCustomers);
+
+  let customersMap = new Map();
+
+  // 1. Fetch registered customers from Firestore collection 'customers'
+  try {
+    const snap = await getDocs(collection(db, 'customers'));
+    if (!snap.empty) {
+      snap.forEach(d => {
+        const data = d.data();
+        const key = (data.email || data.phone || d.id).toLowerCase().trim();
+        customersMap.set(key, { id: d.id, ...data });
+      });
+    }
+  } catch (e) {
+    console.warn('Firestore customers fetch warning:', e);
+  }
+
+  // 2. Fetch users from Firestore collection 'users' if any exist
+  try {
+    const snapUsers = await getDocs(collection(db, 'users'));
+    if (!snapUsers.empty) {
+      snapUsers.forEach(d => {
+        const data = d.data();
+        const key = (data.email || data.phone || d.id).toLowerCase().trim();
+        if (!customersMap.has(key)) {
+          customersMap.set(key, { id: d.id, ...data });
+        }
+      });
+    }
+  } catch (e) {}
+
+  // 3. Fallback / local storage customers
+  const localCusts = getLocalItem('customers', defaultCustomers);
+  (localCusts || []).forEach(c => {
+    const key = (c.email || c.phone || c.id).toLowerCase().trim();
+    if (!customersMap.has(key)) {
+      customersMap.set(key, c);
+    }
+  });
+
+  // 4. Fetch orders from Firestore to auto-discover buyers who placed orders
+  let allOrders = [];
+  try {
+    allOrders = await getOrders('all');
+  } catch (e) {
+    allOrders = [];
+  }
+
+  allOrders.forEach(o => {
+    const email = (o.shipping_email || o.customer_email || '').toLowerCase().trim();
+    const phone = (o.shipping_phone || o.customer_phone || '').trim();
+    const name = o.shipping_name || o.customer_name || 'Customer';
+    const key = email || phone || o.customer_id;
+
+    if (key) {
+      if (!customersMap.has(key)) {
+        customersMap.set(key, {
+          id: o.customer_id || `cust-ord-${phone || email || Math.random().toString(36).substr(2, 6)}`,
+          name: name,
+          email: email || (phone ? `${phone}@honeybeefarm.com` : 'buyer@honeybeefarm.com'),
+          phone: phone,
+          created_at: o.created_at || new Date().toISOString()
+        });
+      }
+    }
+  });
+
+  let customerList = Array.from(customersMap.values());
+  if (customerList.length === 0) {
+    customerList = [...defaultCustomers];
+  }
+
+  // Compute live spending, order count, and last active order
+  const compiled = customerList.map(c => {
+    const userOrders = allOrders.filter(o => {
+      const matchId = c.id && o.customer_id === c.id;
+      const matchPhone = c.phone && (o.shipping_phone === c.phone || o.customer_phone === c.phone);
+      const matchEmail = c.email && ((o.shipping_email && o.shipping_email.toLowerCase() === c.email.toLowerCase()) || (o.customer_email && o.customer_email.toLowerCase() === c.email.toLowerCase()));
+      const matchName = c.name && o.shipping_name && o.shipping_name.toLowerCase() === c.name.toLowerCase();
+      return matchId || matchPhone || matchEmail || matchName;
+    });
+
+    const totalSpent = userOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const lastOrder = userOrders.length > 0 ? userOrders[0] : null;
+
+    return {
+      ...c,
+      order_count: userOrders.length,
+      total_spent: totalSpent,
+      last_order_date: lastOrder ? lastOrder.created_at : null,
+      orders: userOrders
+    };
+  });
+
+  return compiled;
 }
 
 export async function getCustomerById(id) {
   const customers = await getCustomers();
-  const found = customers.find(c => c.id === id || c.email === id);
-  if (!found) return null;
+  let found = customers.find(c => c.id === id || c.email?.toLowerCase() === id.toLowerCase() || c.phone === id);
 
-  const orders = await getOrders('all');
-  const userOrders = orders.filter(o => o.customer_id === id || o.shipping_phone === found.phone || o.shipping_name?.toLowerCase() === found.name?.toLowerCase());
+  const allOrders = await getOrders('all');
+  const userOrders = allOrders.filter(o => {
+    const matchId = (found?.id && o.customer_id === found.id) || o.customer_id === id;
+    const matchPhone = found?.phone && (o.shipping_phone === found.phone || o.customer_phone === found.phone);
+    const matchEmail = found?.email && ((o.shipping_email && o.shipping_email.toLowerCase() === found.email.toLowerCase()) || (o.customer_email && o.customer_email.toLowerCase() === found.email.toLowerCase()));
+    const matchName = found?.name && o.shipping_name && o.shipping_name.toLowerCase() === found.name.toLowerCase();
+    return matchId || matchPhone || matchEmail || matchName;
+  });
+
+  if (!found) {
+    if (userOrders.length > 0) {
+      const first = userOrders[0];
+      found = {
+        id: id,
+        name: first.shipping_name || first.customer_name || 'Customer',
+        email: first.shipping_email || first.customer_email || 'N/A',
+        phone: first.shipping_phone || first.customer_phone || 'N/A',
+        created_at: first.created_at
+      };
+    } else {
+      return null;
+    }
+  }
 
   return {
     ...found,
@@ -1003,7 +1250,7 @@ export async function getCustomerById(id) {
 
 export async function registerCustomerFirebase({ name, email, password, phone }) {
   const customers = await getCustomers();
-  if (customers.some(c => c.email.toLowerCase() === email.toLowerCase())) {
+  if (customers.some(c => c.email?.toLowerCase() === email.toLowerCase())) {
     throw new Error('An account with this email address already exists');
   }
 
@@ -1018,7 +1265,9 @@ export async function registerCustomerFirebase({ name, email, password, phone })
 
   try {
     await setDoc(doc(db, 'customers', id), newCust);
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Firestore customer registration write:', e);
+  }
 
   customers.push(newCust);
   setLocalItem('customers', customers);
@@ -1028,7 +1277,7 @@ export async function registerCustomerFirebase({ name, email, password, phone })
 
 export async function loginCustomerFirebase({ email, password }) {
   const customers = await getCustomers();
-  const found = customers.find(c => c.email.toLowerCase() === email.toLowerCase());
+  const found = customers.find(c => c.email?.toLowerCase() === email.toLowerCase());
 
   if (!found) {
     // Auto-provision demo customer
@@ -1041,6 +1290,9 @@ export async function loginCustomerFirebase({ email, password }) {
       phone: '9876543210',
       created_at: new Date().toISOString()
     };
+    try {
+      await setDoc(doc(db, 'customers', id), newCust);
+    } catch (e) {}
     customers.push(newCust);
     setLocalItem('customers', customers);
     return { customer: newCust, token: `token-${id}` };
@@ -1068,3 +1320,4 @@ export async function loginAdminFirebase({ email, password }) {
 
   throw new Error('Invalid Admin credentials. Please use admin@honeybeefarm.com / HoneyBeeAdmin@2026');
 }
+

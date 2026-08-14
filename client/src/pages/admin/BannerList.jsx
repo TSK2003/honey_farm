@@ -2,13 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Image, Plus, UploadCloud, Trash2, FolderOpen } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useToast } from '../../context/ToastContext';
-import { getBanners, saveBanner } from '../../services/firebaseService';
+import { getBanners, saveBanner, deleteBanner } from '../../services/firebaseService';
 
 export default function BannerList() {
   const { addToast } = useToast();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newBanner, setNewBanner] = useState({ title: '', subtitle: '', image: '/images/hero-honey.png' });
+  const [newBanner, setNewBanner] = useState({ title: '', subtitle: '', image: '/images/product-honey-dry-fruits.png' });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -47,11 +47,22 @@ export default function BannerList() {
     if (!newBanner.title || !newBanner.image) return;
     try {
       await saveBanner(newBanner);
-      addToast('Banner added to Firestore!', 'success');
-      setNewBanner({ title: '', subtitle: '', image: '/images/hero-honey.png' });
+      addToast('Banner saved to Firestore!', 'success');
+      setNewBanner({ title: '', subtitle: '', image: '/images/product-honey-dry-fruits.png' });
       fetchBanners();
     } catch (err) {
       addToast('Error adding banner', 'error');
+    }
+  };
+
+  const handleDeleteBanner = async (id) => {
+    if (!window.confirm('Delete this banner?')) return;
+    try {
+      await deleteBanner(id);
+      addToast('Banner deleted successfully', 'success');
+      fetchBanners();
+    } catch (err) {
+      addToast('Error deleting banner', 'error');
     }
   };
 
@@ -71,7 +82,7 @@ export default function BannerList() {
                 className="form-input" 
                 value={newBanner.title} 
                 onChange={(e) => setNewBanner({ ...newBanner, title: e.target.value })} 
-                placeholder="e.g. 100% Pure Natural Honey"
+                placeholder="e.g. 100% Pure Raw Honey & Dry Fruits Honey"
                 required 
               />
             </div>
@@ -127,12 +138,24 @@ export default function BannerList() {
             <p style={{ color: '#8B7B6B' }}>No banners configured yet.</p>
           ) : (
             banners.map((b, i) => (
-              <div key={b.id || i} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E8DFD3', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <img src={b.image} alt={b.title} style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px' }} />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#2C1810' }}>{b.title}</div>
-                  <div style={{ fontSize: '12px', color: '#8B7B6B' }}>{b.subtitle}</div>
+              <div key={b.id || i} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E8DFD3', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <img src={b.image} alt={b.title} style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #E8DFD3' }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#2C1810' }}>{b.title}</div>
+                    <div style={{ fontSize: '12px', color: '#8B7B6B' }}>{b.subtitle}</div>
+                  </div>
                 </div>
+                {b.id && (
+                  <button 
+                    onClick={() => handleDeleteBanner(b.id)} 
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: '#C44B3F', padding: '6px', flexShrink: 0 }}
+                    title="Delete banner"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))
           )}
@@ -141,3 +164,4 @@ export default function BannerList() {
     </AdminLayout>
   );
 }
+
